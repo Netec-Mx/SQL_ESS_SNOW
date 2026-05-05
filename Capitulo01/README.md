@@ -95,11 +95,13 @@ Antes de iniciar los pasos del laboratorio, debes ejecutar el siguiente script. 
 ### Instrucciones
 
 1. Inicia sesión en Snowflake Snowsight.
-2. En el menú lateral izquierdo, entra a **Projects → Worksheets**.
-3. Crea un nuevo worksheet.
-4. Renómbralo como `Setup_CURSO_SQL`.
-5. Selecciona el warehouse `COMPUTE_WH` o el warehouse asignado por tu instructor.
-6. Copia y ejecuta el siguiente script completo.
+2. En el menú lateral izquierdo, entra a **Projects → Workspaces**.
+3. Crea un nuevo private workspace.
+4. Renómbralo como `Setup_CURSO_SQLSNOW`.
+5. Da clic en **Add new** y crea un nuevo archivo tipo **SQL**
+6. Escribe el siguiente nombre del archivo: **`setup_script_lab1.sql`**
+7. A la derecha selecciona el warehouse **`COMPUTE_WH`** o el warehouse asignado/creado al inicio de la creación de la cuenta.
+8. Copia/Pega y ejecuta el siguiente script completo.
 
 > **Nota:** En Snowsight puedes ejecutar todo el bloque completo. Si tu cuenta no permite crear bases de datos, ejecuta el script hasta donde tus permisos lo permitan o solicita apoyo del instructor.
 
@@ -288,7 +290,7 @@ Al finalizar, la consulta de validación debe devolver:
 
 ### Validación adicional del setup
 
-Ejecuta estas consultas para confirmar que las tablas existen en el schema correcto:
+Al final de la ultima consulta del script ejecuta estas consultas para confirmar que las tablas existen en el schema correcto:
 
 ```sql
 SHOW TABLES IN SCHEMA CURSO_SQL.PUBLIC;
@@ -317,15 +319,16 @@ Antes de comenzar los ejercicios, debes verificar que tu entorno Snowflake está
 **Paso de configuración — Abrir un Worksheet y seleccionar el contexto correcto:**
 
 1. Inicia sesión en tu cuenta Snowflake en [app.snowflake.com](https://app.snowflake.com).
-2. En el menú lateral izquierdo, haz clic en **Projects → Worksheets**.
-3. Haz clic en el botón **＋** (esquina superior derecha) para crear un nuevo Worksheet.
-4. Renombra el worksheet a `Lab_01_Exploracion_Inicial` haciendo clic en el título predeterminado.
-5. En la barra superior del worksheet, selecciona el contexto de ejecución:
+2. En el menú lateral izquierdo, haz clic en **Projects → Workspaces**.
+3. Haz clic en el botón **＋** (esquina superior derecha) para crear un nuevo Private Workspace.
+4. Escribe el siguiente nombre: **`SnowEssLabs`**
+5. Agrega un nuevo archivo tipo **SQL** y escribe el siguiente nombre: **`Lab_01_Exploracion_Inicial`**
+6. En la barra superior derecha del workspace, selecciona el contexto de ejecución:
    - **Warehouse:** `COMPUTE_WH` (tamaño X-Small)
    - **Database:** `CURSO_SQL`
-   - **Schema:** `PUBLIC` (o el schema asignado por tu instructor, ej. `ESTUDIANTE_01`)
+   - **Schema:** `PUBLIC`
 
-6. Ejecuta el siguiente bloque de configuración para confirmar que el contexto está activo:
+7. Ejecuta el siguiente bloque de configuración para confirmar que el contexto está activo:
 
 ```sql
 -- Configuración del contexto de trabajo
@@ -359,7 +362,7 @@ SELECT CURRENT_DATABASE(), CURRENT_SCHEMA(), CURRENT_WAREHOUSE();
 
 #### Instrucciones
 
-1. En tu worksheet `Lab_01_Exploracion_Inicial`, escribe y ejecuta la siguiente consulta para ver la definición completa de la tabla `PRODUCTOS`:
+1. En tu archivo SQL `Lab_01_Exploracion_Inicial`, escribe y ejecuta la siguiente consulta para ver la definición completa de la tabla `PRODUCTOS`:
 
 ```sql
 -- Paso 1.1: Describir la estructura de la tabla PRODUCTOS
@@ -963,7 +966,7 @@ Statement executed successfully.
 ```
 
 Alternativamente, desde la interfaz Snowsight:
-1. Ve al menú lateral → **Admin → Warehouses**.
+1. Ve al menú lateral → **Manage → Compute → Warehouses**.
 2. Localiza `COMPUTE_WH`.
 3. Haz clic en los tres puntos (`⋯`) → **Suspend**.
 
