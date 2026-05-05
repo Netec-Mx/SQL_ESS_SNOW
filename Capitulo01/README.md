@@ -71,6 +71,245 @@ Al finalizar este laboratorio, serás capaz de:
 | Snowflake (Snowsight) | Standard o superior | Acceso vía navegador |
 | Navegador web | Chrome 90+ / Firefox 88+ | JavaScript habilitado obligatorio |
 
+# Preparación obligatoria del dataset
+
+Antes de iniciar los pasos del laboratorio, debes ejecutar el siguiente script. Este script crea la base de datos `CURSO_SQL`, el schema `PUBLIC`, las tablas `PRODUCTOS` y `CLIENTES`, e inserta registros suficientes para practicar consultas de exploración.
+
+## ¿Qué crea este script?
+
+| Objeto | Cantidad esperada | Descripción |
+|---|---:|---|
+| Base de datos | 1 | `CURSO_SQL` |
+| Schema | 1 | `PUBLIC` |
+| Tabla | 1 | `PRODUCTOS` |
+| Tabla | 1 | `CLIENTES` |
+| Registros de productos | 150 | Catálogo de productos con categorías, precios, stock y proveedor |
+| Registros de clientes | 300 | Clientes con país, ciudad, segmento, correo y fecha de registro |
+
+---
+
+## Paso 0 — Crear y poblar el dataset `CURSO_SQL`
+
+**Objetivo:** Preparar el entorno de trabajo creando las tablas requeridas para el laboratorio.
+
+### Instrucciones
+
+1. Inicia sesión en Snowflake Snowsight.
+2. En el menú lateral izquierdo, entra a **Projects → Worksheets**.
+3. Crea un nuevo worksheet.
+4. Renómbralo como `Setup_CURSO_SQL`.
+5. Selecciona el warehouse `COMPUTE_WH` o el warehouse asignado por tu instructor.
+6. Copia y ejecuta el siguiente script completo.
+
+> **Nota:** En Snowsight puedes ejecutar todo el bloque completo. Si tu cuenta no permite crear bases de datos, ejecuta el script hasta donde tus permisos lo permitan o solicita apoyo del instructor.
+
+```sql
+-- ============================================================
+-- Script de inicialización del dataset CURSO_SQL
+-- Versión: 1.1
+-- Uso: Ejecutar una sola vez antes del Lab 01
+-- ============================================================
+
+-- 1. Seleccionar warehouse de trabajo
+USE WAREHOUSE COMPUTE_WH;
+
+-- 2. Crear base de datos y schema del curso
+CREATE OR REPLACE DATABASE CURSO_SQL;
+USE DATABASE CURSO_SQL;
+CREATE SCHEMA IF NOT EXISTS PUBLIC;
+USE SCHEMA PUBLIC;
+
+-- 3. Recrear tablas para garantizar un estado limpio del laboratorio
+DROP TABLE IF EXISTS CURSO_SQL.PUBLIC.PRODUCTOS;
+DROP TABLE IF EXISTS CURSO_SQL.PUBLIC.CLIENTES;
+
+CREATE OR REPLACE TABLE CURSO_SQL.PUBLIC.PRODUCTOS (
+    ID_PRODUCTO      NUMBER(38,0) NOT NULL,
+    NOMBRE_PRODUCTO  VARCHAR(200),
+    CATEGORIA        VARCHAR(100),
+    PRECIO           NUMBER(10,2),
+    STOCK            NUMBER(38,0),
+    PROVEEDOR        VARCHAR(150),
+    FECHA_ALTA       DATE,
+    CONSTRAINT PK_PRODUCTOS PRIMARY KEY (ID_PRODUCTO)
+);
+
+CREATE OR REPLACE TABLE CURSO_SQL.PUBLIC.CLIENTES (
+    ID_CLIENTE       NUMBER(38,0) NOT NULL,
+    NOMBRE           VARCHAR(150),
+    CORREO           VARCHAR(200),
+    PAIS             VARCHAR(80),
+    CIUDAD           VARCHAR(100),
+    SEGMENTO         VARCHAR(50),
+    FECHA_REGISTRO   DATE,
+    CONSTRAINT PK_CLIENTES PRIMARY KEY (ID_CLIENTE)
+);
+
+-- 4. Insertar 150 productos de ejemplo
+INSERT INTO CURSO_SQL.PUBLIC.PRODUCTOS (
+    ID_PRODUCTO,
+    NOMBRE_PRODUCTO,
+    CATEGORIA,
+    PRECIO,
+    STOCK,
+    PROVEEDOR,
+    FECHA_ALTA
+)
+WITH base AS (
+    SELECT SEQ4() + 1 AS ID_PRODUCTO
+    FROM TABLE(GENERATOR(ROWCOUNT => 150))
+), productos AS (
+    SELECT
+        ID_PRODUCTO,
+        CASE MOD(ID_PRODUCTO, 12)
+            WHEN 0 THEN 'Laptop Empresarial'
+            WHEN 1 THEN 'Monitor Profesional'
+            WHEN 2 THEN 'Teclado Mecánico'
+            WHEN 3 THEN 'Mouse Inalámbrico'
+            WHEN 4 THEN 'Silla Ergonómica'
+            WHEN 5 THEN 'Escritorio Ajustable'
+            WHEN 6 THEN 'Cuaderno Ejecutivo'
+            WHEN 7 THEN 'Impresora Láser'
+            WHEN 8 THEN 'Taladro Compacto'
+            WHEN 9 THEN 'Router WiFi'
+            WHEN 10 THEN 'Auriculares USB'
+            ELSE 'Cámara Web HD'
+        END AS TIPO_PRODUCTO,
+        CASE MOD(ID_PRODUCTO, 6)
+            WHEN 0 THEN 'Electrónica'
+            WHEN 1 THEN 'Mobiliario'
+            WHEN 2 THEN 'Papelería'
+            WHEN 3 THEN 'Herramientas'
+            WHEN 4 THEN 'Redes'
+            ELSE 'Accesorios'
+        END AS CATEGORIA,
+        CASE MOD(ID_PRODUCTO, 6)
+            WHEN 0 THEN 'TechSupply S.A.'
+            WHEN 1 THEN 'OfficeWorld'
+            WHEN 2 THEN 'Papelería Central'
+            WHEN 3 THEN 'ToolPro México'
+            WHEN 4 THEN 'NetworkPlus'
+            ELSE 'DigitalGear'
+        END AS PROVEEDOR
+    FROM base
+)
+SELECT
+    ID_PRODUCTO,
+    TIPO_PRODUCTO || ' ' || LPAD(ID_PRODUCTO, 3, '0') AS NOMBRE_PRODUCTO,
+    CATEGORIA,
+    CAST(ROUND(25 + MOD(ID_PRODUCTO * 37, 5000) / 10, 2) AS NUMBER(10,2)) AS PRECIO,
+    MOD(ID_PRODUCTO * 17, 250) + 5 AS STOCK,
+    PROVEEDOR,
+    DATEADD(DAY, -MOD(ID_PRODUCTO * 9, 730), CURRENT_DATE()) AS FECHA_ALTA
+FROM productos;
+
+-- 5. Insertar 300 clientes de ejemplo
+INSERT INTO CURSO_SQL.PUBLIC.CLIENTES (
+    ID_CLIENTE,
+    NOMBRE,
+    CORREO,
+    PAIS,
+    CIUDAD,
+    SEGMENTO,
+    FECHA_REGISTRO
+)
+WITH base AS (
+    SELECT SEQ4() + 1 AS ID_CLIENTE
+    FROM TABLE(GENERATOR(ROWCOUNT => 300))
+), clientes AS (
+    SELECT
+        ID_CLIENTE,
+        CASE MOD(ID_CLIENTE, 12)
+            WHEN 0 THEN 'Ana Martínez'
+            WHEN 1 THEN 'Carlos Gómez'
+            WHEN 2 THEN 'Lucía Fernández'
+            WHEN 3 THEN 'Jorge Ramírez'
+            WHEN 4 THEN 'María Torres'
+            WHEN 5 THEN 'Andrés López'
+            WHEN 6 THEN 'Sofía Castillo'
+            WHEN 7 THEN 'Daniel Hernández'
+            WHEN 8 THEN 'Valeria Morales'
+            WHEN 9 THEN 'Miguel Sánchez'
+            WHEN 10 THEN 'Camila Vargas'
+            ELSE 'Ricardo Flores'
+        END AS NOMBRE_BASE,
+        CASE MOD(ID_CLIENTE, 8)
+            WHEN 0 THEN 'México'
+            WHEN 1 THEN 'Colombia'
+            WHEN 2 THEN 'Argentina'
+            WHEN 3 THEN 'España'
+            WHEN 4 THEN 'Chile'
+            WHEN 5 THEN 'Perú'
+            WHEN 6 THEN 'Ecuador'
+            ELSE 'Uruguay'
+        END AS PAIS,
+        CASE MOD(ID_CLIENTE, 8)
+            WHEN 0 THEN 'Ciudad de México'
+            WHEN 1 THEN 'Bogotá'
+            WHEN 2 THEN 'Buenos Aires'
+            WHEN 3 THEN 'Madrid'
+            WHEN 4 THEN 'Santiago'
+            WHEN 5 THEN 'Lima'
+            WHEN 6 THEN 'Quito'
+            ELSE 'Montevideo'
+        END AS CIUDAD,
+        CASE MOD(ID_CLIENTE, 4)
+            WHEN 0 THEN 'Corporativo'
+            WHEN 1 THEN 'PyME'
+            WHEN 2 THEN 'Gobierno'
+            ELSE 'Educación'
+        END AS SEGMENTO
+    FROM base
+)
+SELECT
+    ID_CLIENTE,
+    NOMBRE_BASE || ' ' || LPAD(ID_CLIENTE, 3, '0') AS NOMBRE,
+    LOWER(REPLACE(NOMBRE_BASE, ' ', '.')) || LPAD(ID_CLIENTE, 3, '0') || '@example.com' AS CORREO,
+    PAIS,
+    CIUDAD,
+    SEGMENTO,
+    DATEADD(DAY, -MOD(ID_CLIENTE * 5, 1095), CURRENT_DATE()) AS FECHA_REGISTRO
+FROM clientes;
+
+-- 6. Validar que el dataset quedó creado correctamente
+SELECT 'PRODUCTOS' AS TABLA, COUNT(*) AS TOTAL_REGISTROS FROM CURSO_SQL.PUBLIC.PRODUCTOS
+UNION ALL
+SELECT 'CLIENTES' AS TABLA, COUNT(*) AS TOTAL_REGISTROS FROM CURSO_SQL.PUBLIC.CLIENTES;
+```
+
+### Resultado esperado del script
+
+Al finalizar, la consulta de validación debe devolver:
+
+| TABLA | TOTAL_REGISTROS |
+|---|---:|
+| PRODUCTOS | 150 |
+| CLIENTES | 300 |
+
+### Validación adicional del setup
+
+Ejecuta estas consultas para confirmar que las tablas existen en el schema correcto:
+
+```sql
+SHOW TABLES IN SCHEMA CURSO_SQL.PUBLIC;
+```
+
+Resultado esperado: deben aparecer al menos las tablas `PRODUCTOS` y `CLIENTES`.
+
+También puedes ejecutar:
+
+```sql
+SELECT CURRENT_DATABASE(), CURRENT_SCHEMA(), CURRENT_WAREHOUSE();
+```
+
+Resultado esperado:
+
+| CURRENT_DATABASE() | CURRENT_SCHEMA() | CURRENT_WAREHOUSE() |
+|---|---|---|
+| CURSO_SQL | PUBLIC | COMPUTE_WH |
+
+---
+
 ### Configuración inicial del entorno
 
 Antes de comenzar los ejercicios, debes verificar que tu entorno Snowflake está correctamente configurado. Sigue estos pasos de setup una sola vez al inicio de la sesión.
