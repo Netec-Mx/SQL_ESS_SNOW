@@ -89,9 +89,198 @@ USE WAREHOUSE COMPUTE_WH;
 SHOW TABLES;
 ```
 
-**Resultado esperado del paso 4:** Debes ver en la lista al menos las tablas `VENTAS` y `CLIENTES`. Si no aparecen, detente y consulta al instructor antes de continuar.
+**Resultado esperado del paso 4:** Debes ver en la lista al menos las tablas `VENTAS` y `CLIENTES`. Si `CLIENTES` existe pero `VENTAS` no aparece, ejecuta la sección **Preparación Obligatoria: Crear y Cargar la Tabla `VENTAS`** antes de continuar. Si tampoco aparece `CLIENTES`, detente y consulta al instructor antes de continuar.
 
-> **Nota para entornos compartidos:** Si trabajas en un entorno corporativo compartido, el instructor habrá creado un schema individual para ti (ej. `ESTUDIANTE_01`). Usa ese schema en el comando `USE SCHEMA` para evitar conflictos con otros estudiantes.
+---
+
+### Preparación Obligatoria: Crear y Cargar la Tabla `VENTAS`
+
+La práctica utiliza las tablas `CLIENTES` y `VENTAS`. Si ya ejecutaste el script de inicialización del Lab 01, la tabla `CLIENTES` debe existir. Sin embargo, para este laboratorio también necesitas la tabla `VENTAS`. Ejecuta el siguiente script **antes de iniciar el Paso 1** si `VENTAS` no aparece al ejecutar `SHOW TABLES`.
+
+> **Importante:** Este script crea nuevamente la tabla `VENTAS`. Si ya tenías datos de ventas en el schema actual, serán reemplazados. En un entorno compartido, confirma que estás usando tu schema asignado antes de ejecutarlo.
+
+#### Pasos para Ejecutar el Script
+
+1. En Snowsight, abre el workspace **Setup_CURSO_SQLSNOW**.
+2. Crea una nueva archivo tipo SQL llamada **`Setup_Lab02_Ventas`**.
+3. Verifica que estés usando el warehouse correcto, por ejemplo **`COMPUTE_WH`**.
+4. Copia y pega el siguiente script
+5. Ejecuta el script completo.
+
+#### Script de Inicialización de `VENTAS`
+
+```sql
+-- ============================================================
+-- LAB 02 - Script de inicialización de datos para tabla VENTAS
+-- Base de datos: CURSO_SQL
+-- Schema: PUBLIC
+-- Requisito: La tabla CLIENTES debe existir previamente
+-- Registros generados: 1,200 ventas
+-- ============================================================
+
+USE DATABASE CURSO_SQL;
+USE SCHEMA PUBLIC;
+USE WAREHOUSE COMPUTE_WH;
+
+-- Verificación previa: confirmar que CLIENTES existe y tiene datos
+SELECT COUNT(*) AS total_clientes
+FROM CLIENTES;
+
+-- Crear la tabla VENTAS con la estructura requerida por la práctica
+CREATE OR REPLACE TABLE VENTAS (
+    ID_VENTA NUMBER,
+    ID_CLIENTE NUMBER,
+    PRODUCTO VARCHAR,
+    CATEGORIA VARCHAR,
+    CANTIDAD NUMBER,
+    PRECIO_UNITARIO NUMBER(10,2),
+    TOTAL_VENTA NUMBER(10,2),
+    FECHA_VENTA DATE,
+    REGION VARCHAR,
+    ESTADO_ENVIO VARCHAR
+);
+
+-- Insertar 1,200 registros sintéticos de ventas
+-- Los ID_CLIENTE se toman desde la tabla CLIENTES para mantener coherencia con el dataset
+INSERT INTO VENTAS (
+    ID_VENTA,
+    ID_CLIENTE,
+    PRODUCTO,
+    CATEGORIA,
+    CANTIDAD,
+    PRECIO_UNITARIO,
+    TOTAL_VENTA,
+    FECHA_VENTA,
+    REGION,
+    ESTADO_ENVIO
+)
+WITH clientes_ordenados AS (
+    SELECT
+        ID_CLIENTE,
+        ROW_NUMBER() OVER (ORDER BY ID_CLIENTE) AS rn
+    FROM CLIENTES
+),
+total_clientes AS (
+    SELECT COUNT(*) AS total
+    FROM clientes_ordenados
+),
+base AS (
+    SELECT
+        ROW_NUMBER() OVER (ORDER BY SEQ4()) AS n
+    FROM TABLE(GENERATOR(ROWCOUNT => 1200))
+),
+ventas_base AS (
+    SELECT
+        b.n AS ID_VENTA,
+        c.ID_CLIENTE,
+        CASE MOD(b.n, 6)
+            WHEN 0 THEN 'Electrónica'
+            WHEN 1 THEN 'Ropa'
+            WHEN 2 THEN 'Hogar'
+            WHEN 3 THEN 'Oficina'
+            WHEN 4 THEN 'Deportes'
+            ELSE 'Alimentos'
+        END AS CATEGORIA,
+        CASE MOD(b.n, 18)
+            WHEN 0 THEN 'Laptop Pro 14'
+            WHEN 1 THEN 'Mouse Basic'
+            WHEN 2 THEN 'Teclado Pro Mecánico'
+            WHEN 3 THEN 'Monitor Pro 27'
+            WHEN 4 THEN 'Camisa Casual'
+            WHEN 5 THEN 'Pantalón Ejecutivo'
+            WHEN 6 THEN 'Silla Ergonómica Pro'
+            WHEN 7 THEN 'Escritorio Basic'
+            WHEN 8 THEN 'Cafetera Hogar'
+            WHEN 9 THEN 'Lámpara LED Pro'
+            WHEN 10 THEN 'Mochila Deportiva'
+            WHEN 11 THEN 'Tenis Running Pro'
+            WHEN 12 THEN 'Audífonos Basic'
+            WHEN 13 THEN 'Tablet Pro 11'
+            WHEN 14 THEN 'Agenda Oficina'
+            WHEN 15 THEN 'Botella Térmica'
+            WHEN 16 THEN 'Kit Cocina Basic'
+            ELSE 'Smartwatch Pro'
+        END AS PRODUCTO,
+        MOD(b.n, 5) + 1 AS CANTIDAD,
+        CASE MOD(b.n, 18)
+            WHEN 0 THEN 18500.00
+            WHEN 1 THEN 280.00
+            WHEN 2 THEN 1450.00
+            WHEN 3 THEN 7200.00
+            WHEN 4 THEN 420.00
+            WHEN 5 THEN 680.00
+            WHEN 6 THEN 5600.00
+            WHEN 7 THEN 2300.00
+            WHEN 8 THEN 1350.00
+            WHEN 9 THEN 890.00
+            WHEN 10 THEN 760.00
+            WHEN 11 THEN 2100.00
+            WHEN 12 THEN 350.00
+            WHEN 13 THEN 9800.00
+            WHEN 14 THEN 95.00
+            WHEN 15 THEN 180.00
+            WHEN 16 THEN 520.00
+            ELSE 4300.00
+        END AS PRECIO_UNITARIO,
+        DATEADD(DAY, MOD(b.n * 3, 1095), DATE '2022-01-01') AS FECHA_VENTA,
+        CASE MOD(b.n, 5)
+            WHEN 0 THEN 'Norte'
+            WHEN 1 THEN 'Sur'
+            WHEN 2 THEN 'Centro'
+            WHEN 3 THEN 'Occidente'
+            ELSE 'Oriente'
+        END AS REGION,
+        CASE
+            WHEN MOD(b.n, 11) = 0 THEN NULL
+            WHEN MOD(b.n, 4) = 0 THEN 'Pendiente'
+            WHEN MOD(b.n, 4) = 1 THEN 'Enviado'
+            WHEN MOD(b.n, 4) = 2 THEN 'Entregado'
+            ELSE 'Cancelado'
+        END AS ESTADO_ENVIO
+    FROM base b
+    CROSS JOIN total_clientes tc
+    JOIN clientes_ordenados c
+      ON c.rn = MOD(b.n - 1, tc.total) + 1
+)
+SELECT
+    ID_VENTA,
+    ID_CLIENTE,
+    PRODUCTO,
+    CATEGORIA,
+    CANTIDAD,
+    PRECIO_UNITARIO,
+    CANTIDAD * PRECIO_UNITARIO AS TOTAL_VENTA,
+    FECHA_VENTA,
+    REGION,
+    ESTADO_ENVIO
+FROM ventas_base;
+
+-- Validación general de carga
+SELECT COUNT(*) AS total_ventas
+FROM VENTAS;
+
+-- Validación de valores necesarios para la práctica
+SELECT DISTINCT REGION
+FROM VENTAS
+ORDER BY REGION;
+
+SELECT DISTINCT CATEGORIA
+FROM VENTAS
+ORDER BY CATEGORIA;
+
+SELECT
+    COUNT(*) AS ventas_sin_estado_envio
+FROM VENTAS
+WHERE ESTADO_ENVIO IS NULL;
+
+SELECT *
+FROM VENTAS
+LIMIT 10;
+```
+
+#### Resultado Esperado
+
+Al finalizar la ejecución del script, la tabla `VENTAS` queda disponible con datos suficientes para completar todos los pasos de la práctica.
 
 ---
 
@@ -137,9 +326,12 @@ Antes de filtrar datos, es fundamental conocer la estructura de las tablas con l
 
 #### Instrucciones
 
-1. Abre una nueva worksheet en Snowsight. Nómbrala `Lab02_Filtrado`.
+1. Abre tu **Workspace** llamado **SnowEssLabs**
+2. Crea un nuevo archivo tipo **SQL**. Nómbrala **`Lab02_Filtrado`**.
+3. Selecciona tu **Compute-WH** 
+4. Selecciona tu base de datos **CURSO_SQL** y esquema **PUBLIC**
 
-2. Ejecuta la siguiente consulta para ver una muestra de la tabla `CLIENTES`:
+5. Ejecuta la siguiente consulta para ver una muestra de la tabla `CLIENTES`:
 
 ```sql
 -- Vista previa de la tabla CLIENTES
@@ -173,12 +365,14 @@ ORDER BY SEGMENTO;
 SELECT *
 FROM VENTAS
 LIMIT 10;
-
+```
+```sql
 -- Regiones disponibles
 SELECT DISTINCT REGION
 FROM VENTAS
 ORDER BY REGION;
-
+```
+```sql
 -- Categorías de productos disponibles
 SELECT DISTINCT CATEGORIA
 FROM VENTAS
@@ -252,11 +446,13 @@ WHERE REGION = 'Norte';
 
 #### Verificación
 
-Después de ejecutar la consulta 1, observa el contador de filas en la parte inferior de Snowsight. Luego ejecuta:
+Después de ejecutar la consulta 1, observa el contador de filas en la parte superior derecha de Snowsight. Luego ejecuta:
 
 ```sql
 -- Verificación: el total de filas filtradas + el resto debe sumar el total de la tabla
 SELECT COUNT(*) AS total_clientes FROM CLIENTES;
+```
+```sql
 SELECT COUNT(*) AS clientes_mexico FROM CLIENTES WHERE PAIS = 'México';
 ```
 
@@ -276,7 +472,7 @@ Si el número de `clientes_mexico` es mayor que cero y menor que `total_clientes
 
 ```sql
 -- Ventas con total superior a $500
-SELECT ID_VENTA, PRODUCTO, TOTAL_VENTA, FECHA_VENTA
+SELECT ID_VENTA, PRODUCTO, TO_VARCHAR(TOTAL_VENTA, '$999,999,999.00'), FECHA_VENTA
 FROM VENTAS
 WHERE TOTAL_VENTA > 500;
 ```
@@ -287,7 +483,7 @@ WHERE TOTAL_VENTA > 500;
 -- Productos económicos: precio unitario <= $50
 SELECT ID_VENTA, PRODUCTO, PRECIO_UNITARIO, CATEGORIA
 FROM VENTAS
-WHERE PRECIO_UNITARIO <= 50;
+WHERE PRECIO_UNITARIO <= 100;
 ```
 
 3. Encuentra los clientes que se registraron a partir del año 2023 (fecha mayor o igual al 1 de enero de 2023):
@@ -531,7 +727,7 @@ WHERE PAIS = 'México'
 ```sql
 -- Clientes cuyo nombre empieza con A
 -- % significa "cualquier cantidad de caracteres después de A"
-SELECT ID_CLIENTE, NOMBRE, PAIS, EMAIL
+SELECT ID_CLIENTE, NOMBRE, PAIS, CORREO
 FROM CLIENTES
 WHERE NOMBRE LIKE 'A%';
 ```
@@ -543,7 +739,7 @@ WHERE NOMBRE LIKE 'A%';
 -- % al inicio significa "cualquier texto antes de ez"
 SELECT ID_CLIENTE, NOMBRE, PAIS
 FROM CLIENTES
-WHERE NOMBRE LIKE '%ez';
+WHERE NOMBRE LIKE '%1';
 ```
 
 3. Encuentra clientes cuyo nombre o apellido contiene la cadena `'ar'` en cualquier posición:
@@ -571,9 +767,9 @@ WHERE PRODUCTO LIKE '%Pro%';
 -- Patrón con _ : exactamente UN carácter en esa posición
 -- Ejemplo: busca emails donde el dominio empieza con una letra específica
 -- _ representa exactamente 1 carácter
-SELECT ID_CLIENTE, NOMBRE, EMAIL
+SELECT ID_CLIENTE, NOMBRE, CORREO
 FROM CLIENTES
-WHERE EMAIL LIKE '%@_mail.com';
+WHERE CORREO LIKE '%@example.com';
 -- Esto coincide con @gmail.com, @amail.com, @zmail.com, etc.
 ```
 
@@ -614,7 +810,7 @@ ORDER BY NOMBRE;
 
 #### Instrucciones
 
-1. Encuentra los clientes que **no tienen número de teléfono registrado** (campo `TELEFONO` es NULL):
+1. Encuentra los clientes que **no tienen correo electronico registrado** (campo `CORREO` es NULL):
 
 ```sql
 -- Clientes sin teléfono registrado
@@ -754,180 +950,12 @@ WHERE PAIS IN ('México', 'Colombia', 'Chile')
 ORDER BY PAIS, NOMBRE;
 ```
 
-5. **Desafío adicional (opcional):** Modifica la consulta para también excluir clientes cuyo nombre contenga la cadena `'Test'` (registros de prueba que podrían contaminar la campaña):
-
-```sql
--- Consulta final + exclusión de registros de prueba
-SELECT ID_CLIENTE, NOMBRE, PAIS, SEGMENTO, EMAIL, FECHA_REGISTRO
-FROM CLIENTES
-WHERE PAIS IN ('México', 'Colombia', 'Chile')
-  AND SEGMENTO IN ('Retail', 'Corporativo')
-  AND EMAIL IS NOT NULL
-  AND FECHA_REGISTRO < '2023-01-01'
-  AND NOMBRE NOT LIKE '%Test%'
-ORDER BY PAIS, NOMBRE;
-```
-
 #### Resultado Esperado
 
 - Cada versión de la consulta debe devolver menos filas que la anterior, ya que cada condición adicional reduce el conjunto de resultados.
 - La consulta final devuelve el listado de clientes que cumplen todos los criterios de la campaña.
-- La columna `ORDER BY PAIS, NOMBRE` organiza los resultados para facilitar su revisión.
-
-#### Verificación
-
-```sql
--- Verifica que la consulta final cumple todos los criterios
--- Ninguna fila debe tener PAIS fuera de la lista, EMAIL nulo, o FECHA_REGISTRO >= 2023
-SELECT
-    COUNT(*) AS total_campana,
-    COUNT(DISTINCT PAIS) AS paises_distintos,
-    MIN(FECHA_REGISTRO) AS cliente_mas_antiguo,
-    MAX(FECHA_REGISTRO) AS cliente_mas_reciente
-FROM CLIENTES
-WHERE PAIS IN ('México', 'Colombia', 'Chile')
-  AND SEGMENTO IN ('Retail', 'Corporativo')
-  AND EMAIL IS NOT NULL
-  AND FECHA_REGISTRO < '2023-01-01';
--- MAX(FECHA_REGISTRO) debe ser anterior a 2023-01-01
-```
 
 > **Buena práctica — Construcción incremental:** Construir consultas complejas paso a paso (como hiciste en este ejercicio) es una práctica profesional recomendada. Te permite verificar cada condición individualmente antes de combinarlas, lo que facilita la detección de errores y la comprensión del impacto de cada filtro.
-
----
-
-## Validación y Pruebas Finales
-
-Ejecuta las siguientes consultas de validación para confirmar que dominas los conceptos del laboratorio. Cada consulta debe devolver un resultado coherente con lo que aprendiste.
-
-```sql
--- VALIDACIÓN 1: WHERE con texto (debe devolver solo clientes de un país)
-SELECT COUNT(*) AS v1_clientes_pais
-FROM CLIENTES
-WHERE PAIS = 'México';
--- Esperado: número mayor a 0
-
--- VALIDACIÓN 2: WHERE con número (ventas mayores a $200)
-SELECT COUNT(*) AS v2_ventas_altas
-FROM VENTAS
-WHERE TOTAL_VENTA > 200;
--- Esperado: número mayor a 0 y menor que el total de ventas
-
--- VALIDACIÓN 3: AND (ambas condiciones)
-SELECT COUNT(*) AS v3_filtro_and
-FROM VENTAS
-WHERE TOTAL_VENTA > 200
-  AND REGION = 'Norte';
--- Esperado: igual o menor que v2 (AND restringe más)
-
--- VALIDACIÓN 4: OR (alguna condición)
-SELECT COUNT(*) AS v4_filtro_or
-FROM VENTAS
-WHERE CATEGORIA = 'Electrónica'
-   OR CATEGORIA = 'Ropa';
--- Esperado: igual al resultado de IN con los mismos valores
-
--- VALIDACIÓN 5: IN equivale a OR
-SELECT COUNT(*) AS v5_filtro_in
-FROM VENTAS
-WHERE CATEGORIA IN ('Electrónica', 'Ropa');
--- Esperado: MISMO número que v4
-
--- VALIDACIÓN 6: LIKE con patrón
-SELECT COUNT(*) AS v6_like_patron
-FROM CLIENTES
-WHERE NOMBRE LIKE 'A%';
--- Esperado: número mayor o igual a 0
-
--- VALIDACIÓN 7: IS NULL
-SELECT COUNT(*) AS v7_nulos
-FROM CLIENTES
-WHERE TELEFONO IS NULL;
--- Esperado: número mayor o igual a 0
-
--- VALIDACIÓN 8: IS NULL + IS NOT NULL = total
-SELECT
-    (SELECT COUNT(*) FROM CLIENTES WHERE TELEFONO IS NULL) +
-    (SELECT COUNT(*) FROM CLIENTES WHERE TELEFONO IS NOT NULL) AS suma_nulos_no_nulos,
-    (SELECT COUNT(*) FROM CLIENTES) AS total_real;
--- Esperado: suma_nulos_no_nulos = total_real
-```
-
-**Criterio de aprobación:** Las validaciones 4 y 5 deben producir el mismo número. La validación 8 debe mostrar números iguales en ambas columnas. Si alguna validación falla, revisa el paso correspondiente antes de continuar.
-
----
-
-## Solución de Problemas
-
-### Problema 1: La consulta con WHERE devuelve 0 filas inesperadamente
-
-**Síntoma:** Ejecutas una consulta con `WHERE PAIS = 'mexico'` o `WHERE CATEGORIA = 'electronica'` y el resultado es una tabla vacía, aunque sabes que existen registros con esos valores.
-
-**Causa:** Snowflake almacena los datos con el formato exacto en que fueron insertados. Si los datos tienen mayúsculas (`'México'`, `'Electrónica'`) y tu filtro usa minúsculas (`'mexico'`, `'electronica'`), la comparación con `=` falla porque no coinciden exactamente. También puede ocurrir con espacios invisibles al inicio o al final del valor.
-
-**Solución:**
-
-```sql
--- Opción 1: Usa el valor exacto que viste en el Paso 1 de exploración
--- Siempre verifica los valores con DISTINCT antes de filtrar
-SELECT DISTINCT PAIS FROM CLIENTES ORDER BY PAIS;
-
--- Opción 2: Usa ILIKE en lugar de LIKE para búsqueda case-insensitive (Snowflake)
-SELECT ID_CLIENTE, NOMBRE, PAIS
-FROM CLIENTES
-WHERE PAIS ILIKE 'méxico';  -- ILIKE ignora mayúsculas/minúsculas en Snowflake
-
--- Opción 3: Normaliza el texto con UPPER() o LOWER() para comparación
-SELECT ID_CLIENTE, NOMBRE, PAIS
-FROM CLIENTES
-WHERE UPPER(PAIS) = 'MÉXICO';
-
--- Opción 4: Verifica si hay espacios con TRIM
-SELECT ID_CLIENTE, NOMBRE, PAIS
-FROM CLIENTES
-WHERE TRIM(PAIS) = 'México';
-```
-
-> **Prevención:** Ejecuta siempre `SELECT DISTINCT columna FROM tabla ORDER BY columna` antes de escribir filtros sobre columnas de texto. Esto te muestra los valores exactos almacenados y evita el problema desde el inicio.
-
----
-
-### Problema 2: El resultado de una consulta con AND y OR no es el esperado
-
-**Síntoma:** Escribes una consulta combinando `AND` y `OR` y el número de filas devueltas es mucho mayor (o menor) de lo esperado. Por ejemplo, una consulta que debería devolver ventas de alto valor de dos categorías específicas devuelve casi todas las ventas de la tabla.
-
-**Causa:** SQL evalúa `AND` antes que `OR` (mayor precedencia), igual que la multiplicación tiene mayor precedencia que la suma en matemáticas. Sin paréntesis, la consulta `WHERE TOTAL_VENTA > 500 AND CATEGORIA = 'Electrónica' OR REGION = 'Sur'` se interpreta como `WHERE (TOTAL_VENTA > 500 AND CATEGORIA = 'Electrónica') OR (REGION = 'Sur')`, lo que devuelve TODAS las ventas de la región Sur sin importar el monto, más las ventas de Electrónica mayores a $500.
-
-**Solución:**
-
-```sql
--- INCORRECTO (sin paréntesis — AND se evalúa primero, resultado inesperado):
-SELECT ID_VENTA, PRODUCTO, CATEGORIA, REGION, TOTAL_VENTA
-FROM VENTAS
-WHERE TOTAL_VENTA > 500
-  AND CATEGORIA = 'Electrónica' OR REGION = 'Sur';
--- Devuelve: (TOTAL_VENTA > 500 AND CATEGORIA = 'Electrónica') OR (REGION = 'Sur')
--- Resultado: incluye TODAS las ventas de la región Sur
-
--- CORRECTO (con paréntesis — intención explícita):
-SELECT ID_VENTA, PRODUCTO, CATEGORIA, REGION, TOTAL_VENTA
-FROM VENTAS
-WHERE TOTAL_VENTA > 500
-  AND (CATEGORIA = 'Electrónica' OR REGION = 'Sur');
--- Devuelve: ventas > $500 que además son de Electrónica O de la región Sur
-
--- DIAGNÓSTICO: Si no estás seguro, verifica el conteo con y sin paréntesis
-SELECT COUNT(*) FROM VENTAS
-WHERE TOTAL_VENTA > 500
-  AND CATEGORIA = 'Electrónica' OR REGION = 'Sur';
-
-SELECT COUNT(*) FROM VENTAS
-WHERE TOTAL_VENTA > 500
-  AND (CATEGORIA = 'Electrónica' OR REGION = 'Sur');
--- Si los números son diferentes, los paréntesis están cambiando el resultado
-```
-
-> **Regla de oro:** Siempre que combines `AND` y `OR` en la misma cláusula `WHERE`, usa paréntesis para hacer explícito el orden de evaluación. Aunque no sean técnicamente necesarios en algunos casos, hacen el código más legible y previenen bugs silenciosos.
 
 ---
 
