@@ -76,7 +76,11 @@ Al completar este laboratorio serás capaz de:
 
 ### Configuración inicial del entorno
 
-Antes de comenzar los ejercicios, abre un nuevo **Worksheet** en Snowsight y ejecuta los siguientes comandos para asegurarte de estar trabajando en el contexto correcto:
+Antes de comenzar los ejercicios haz lo siguiente:
+
+1. Abre un tu **Workspace** llamado **SnowEssLAbs**.
+2. Crea un archivo de tipo SQL llamado **`Lab03_Ordenamiento`**.
+3. Ejecuta los siguientes comandos para asegurarte de estar trabajando en el contexto correcto:
 
 ```sql
 -- 1. Seleccionar la base de datos del curso
@@ -129,11 +133,11 @@ Observa las columnas disponibles: sus nombres, tipos de datos y si admiten valor
 ```sql
 -- Ver una muestra de productos sin ningún orden específico
 SELECT
-    id_producto,
-    nombre_producto,
-    categoria,
-    precio_unitario,
-    stock_disponible
+    ID_PRODUCTO
+    NOMBRE_PRODUCTO,
+    CATEGORIA,
+    PRECIO,
+    STOCK
 FROM productos
 LIMIT 10;
 ```
@@ -143,13 +147,13 @@ LIMIT 10;
 ```sql
 -- Ordenar todos los productos por precio de menor a mayor
 SELECT
-    id_producto,
-    nombre_producto,
-    categoria,
-    precio_unitario,
-    stock_disponible
+    ID_PRODUCTO,
+    NOMBRE_PRODUCTO,
+    CATEGORIA,
+    PRECIO,
+    STOCK
 FROM productos
-ORDER BY precio_unitario ASC;
+ORDER BY PRECIO ASC;
 ```
 
 **Paso 1.4 — Aplicar ORDER BY descendente por precio**
@@ -157,13 +161,13 @@ ORDER BY precio_unitario ASC;
 ```sql
 -- Ordenar todos los productos por precio de mayor a menor
 SELECT
-    id_producto,
-    nombre_producto,
-    categoria,
-    precio_unitario,
-    stock_disponible
+    ID_PRODUCTO,
+    NOMBRE_PRODUCTO,
+    CATEGORIA,
+    PRECIO,
+    STOCK
 FROM productos
-ORDER BY precio_unitario DESC;
+ORDER BY PRECIO DESC;
 ```
 
 #### Resultado esperado
@@ -176,11 +180,11 @@ ORDER BY precio_unitario DESC;
 
 Confirma que tu consulta es correcta respondiendo estas preguntas:
 
-- [ ] ¿El primer registro del Paso 1.3 tiene el `precio_unitario` más bajo de toda la tabla?
-- [ ] ¿El primer registro del Paso 1.4 tiene el `precio_unitario` más alto de toda la tabla?
+- [ ] ¿El primer registro del Paso 1.3 tiene el `PRECIO` más bajo de toda la tabla?
+- [ ] ¿El primer registro del Paso 1.4 tiene el `PRECIO` más alto de toda la tabla?
 - [ ] ¿La cantidad total de filas es la misma en los Pasos 1.3 y 1.4? (Solo cambia el orden, no el número de registros.)
 
-> **📌 Concepto clave:** `ORDER BY precio_unitario` sin especificar dirección es equivalente a `ORDER BY precio_unitario ASC`. Snowflake asume orden ascendente por defecto.
+> **📌 Concepto clave:** `ORDER BY PRECIO` sin especificar dirección es equivalente a `ORDER BY PRECIO ASC`. Snowflake asume orden ascendente por defecto.
 
 ---
 
@@ -197,11 +201,11 @@ Primero, observa qué ocurre cuando ordenamos solo por categoría:
 ```sql
 -- Ordenar productos solo por categoría (primer criterio)
 SELECT
-    nombre_producto,
-    categoria,
-    precio_unitario
+    NOMBRE_PRODUCTO,
+    CATEGORIA,
+    PRECIO
 FROM productos
-ORDER BY categoria ASC;
+ORDER BY CATEGORIA ASC;
 ```
 
 Observa que dentro de cada categoría, los productos no siguen ningún orden en particular. Esto es lo que resolveremos con el segundo criterio.
@@ -211,11 +215,11 @@ Observa que dentro de cada categoría, los productos no siguen ningún orden en 
 ```sql
 -- Ordenar por categoría (A→Z) y dentro de cada categoría por precio (mayor→menor)
 SELECT
-    nombre_producto,
-    categoria,
-    precio_unitario
+    NOMBRE_PRODUCTO,
+    CATEGORIA,
+    PRECIO
 FROM productos
-ORDER BY categoria ASC, precio_unitario DESC;
+ORDER BY CATEGORIA ASC, PRECIO DESC;
 ```
 
 **Paso 2.3 — Ordenar por categoría y luego por nombre de producto**
@@ -223,11 +227,11 @@ ORDER BY categoria ASC, precio_unitario DESC;
 ```sql
 -- Ordenar por categoría (A→Z) y dentro de cada categoría por nombre (A→Z)
 SELECT
-    nombre_producto,
-    categoria,
-    precio_unitario
+    NOMBRE_PRODUCTO,
+    CATEGORIA,
+    PRECIO
 FROM productos
-ORDER BY categoria ASC, nombre_producto ASC;
+ORDER BY CATEGORIA ASC, NOMBRE_PRODUCTO ASC;
 ```
 
 **Paso 2.4 — Explorar la tabla VENTAS con ordenamiento múltiple**
@@ -235,13 +239,13 @@ ORDER BY categoria ASC, nombre_producto ASC;
 ```sql
 -- Ver las ventas ordenadas por fecha (más reciente primero) y luego por monto (mayor primero)
 SELECT
-    id_venta,
-    id_cliente,
-    id_producto,
-    monto_total,
-    fecha_venta
+    ID_venta,
+    ID_CLIENTE,
+    PRODUCTO,
+    TOTAL_VENTA,
+    FECHA_VENTA
 FROM ventas
-ORDER BY fecha_venta DESC, monto_total DESC;
+ORDER BY FECHA_VENTA DESC, TOTAL_VENTA DESC;
 ```
 
 #### Resultado esperado
@@ -273,13 +277,13 @@ ORDER BY fecha_venta DESC, monto_total DESC;
 SELECT
     id_venta,
     id_cliente,
-    id_producto,
-    monto_total,
+    PRODUCTO,
+    total_venta,
     fecha_venta
 FROM ventas
 WHERE fecha_venta >= '2024-01-01'
   AND fecha_venta <= '2024-03-31'
-ORDER BY monto_total DESC;
+ORDER BY total_venta DESC;
 ```
 
 **Paso 3.2 — Productos de una categoría específica ordenados por precio**
@@ -288,16 +292,16 @@ ORDER BY monto_total DESC;
 -- Productos de la categoría 'Electrónica' ordenados de menor a mayor precio
 -- (Reemplaza 'Electrónica' por una categoría real de tu dataset si es necesario)
 SELECT
-    nombre_producto,
-    categoria,
-    precio_unitario,
-    stock_disponible
+    NOMBRE_PRODUCTO,
+    CATEGORIA,
+    PRECIO,
+    STOCK
 FROM productos
-WHERE categoria = 'Electrónica'
-ORDER BY precio_unitario ASC;
+WHERE CATEGORIA = 'Electrónica'
+ORDER BY PRECIO ASC;
 ```
 
-> **💡 Tip:** Si no conoces los nombres exactos de las categorías, ejecuta primero: `SELECT DISTINCT categoria FROM productos ORDER BY categoria;` para ver todas las opciones disponibles.
+> **💡 Tip:** Si no conoces los nombres exactos de las categorías, ejecuta primero: `SELECT DISTINCT CATEGORIA FROM productos ORDER BY CATEGORIA;` para ver todas las opciones disponibles.
 
 **Paso 3.3 — Clientes con ventas de alto valor en orden cronológico**
 
@@ -306,10 +310,10 @@ ORDER BY precio_unitario ASC;
 SELECT
     id_venta,
     id_cliente,
-    monto_total,
+    total_venta,
     fecha_venta
 FROM ventas
-WHERE monto_total > 500
+WHERE total_venta > 500
 ORDER BY fecha_venta ASC;
 ```
 
@@ -319,13 +323,13 @@ ORDER BY fecha_venta ASC;
 -- Productos con stock menor a 20 unidades, ordenados de menor a mayor stock
 -- (Útil para priorizar reabastecimiento)
 SELECT
-    nombre_producto,
-    categoria,
-    precio_unitario,
-    stock_disponible
+    NOMBRE_PRODUCTO,
+    CATEGORIA,
+    PRECIO,
+    STOCK
 FROM productos
-WHERE stock_disponible < 20
-ORDER BY stock_disponible ASC;
+WHERE STOCK < 20
+ORDER BY STOCK ASC;
 ```
 
 #### Resultado esperado
@@ -358,11 +362,11 @@ Este es el ejercicio central del laboratorio. El patrón **`ORDER BY [columna] D
 ```sql
 -- Los 5 productos con mayor precio unitario
 SELECT
-    nombre_producto,
-    categoria,
-    precio_unitario
+    NOMBRE_PRODUCTO,
+    CATEGORIA,
+    PRECIO
 FROM productos
-ORDER BY precio_unitario DESC
+ORDER BY PRECIO DESC
 LIMIT 5;
 ```
 
@@ -371,11 +375,11 @@ LIMIT 5;
 ```sql
 -- Los 5 productos con menor precio unitario
 SELECT
-    nombre_producto,
-    categoria,
-    precio_unitario
+    NOMBRE_PRODUCTO,
+    CATEGORIA,
+    PRECIO
 FROM productos
-ORDER BY precio_unitario ASC
+ORDER BY PRECIO ASC
 LIMIT 5;
 ```
 
@@ -386,11 +390,11 @@ LIMIT 5;
 SELECT
     id_venta,
     id_cliente,
-    id_producto,
-    monto_total,
+    PRODUCTO,
+    total_venta,
     fecha_venta
 FROM ventas
-ORDER BY monto_total DESC
+ORDER BY total_venta DESC
 LIMIT 10;
 ```
 
@@ -401,8 +405,8 @@ LIMIT 10;
 SELECT
     id_venta,
     id_cliente,
-    id_producto,
-    monto_total,
+    PRODUCTO,
+    total_venta,
     fecha_venta
 FROM ventas
 ORDER BY fecha_venta DESC
@@ -415,12 +419,12 @@ LIMIT 3;
 -- Los 10 productos más cercanos a quedarse sin stock
 -- Útil para alertas de reabastecimiento
 SELECT
-    nombre_producto,
-    categoria,
-    stock_disponible,
-    precio_unitario
+    NOMBRE_PRODUCTO,
+    CATEGORIA,
+    STOCK,
+    PRECIO
 FROM productos
-ORDER BY stock_disponible ASC
+ORDER BY STOCK ASC
 LIMIT 10;
 ```
 
@@ -431,12 +435,12 @@ LIMIT 10;
 SELECT
     id_venta,
     id_cliente,
-    monto_total,
+    total_venta,
     fecha_venta
 FROM ventas
 WHERE fecha_venta >= '2024-01-01'
   AND fecha_venta <= '2024-03-31'
-ORDER BY monto_total DESC
+ORDER BY total_venta DESC
 LIMIT 5;
 ```
 
@@ -452,7 +456,7 @@ LIMIT 5;
 #### Verificación
 
 - [ ] ¿El Paso 4.1 devuelve exactamente 5 filas?
-- [ ] ¿El valor de `precio_unitario` en la fila 1 del Paso 4.1 es mayor que el de la fila 2, y así sucesivamente?
+- [ ] ¿El valor de `PRECIO` en la fila 1 del Paso 4.1 es mayor que el de la fila 2, y así sucesivamente?
 - [ ] ¿En el Paso 4.4, la fecha de la fila 1 es más reciente que la fecha de la fila 2?
 - [ ] ¿En el Paso 4.6, todas las fechas mostradas están entre el 1 de enero y el 31 de marzo de 2024?
 
@@ -479,10 +483,10 @@ LIMIT 5;
 -- Ver todas las categorías únicas ordenadas alfabéticamente
 -- Esto te ayudará a seleccionar la categoría correcta en el Paso 5.3
 SELECT DISTINCT
-    categoria,
+    CATEGORIA,
     COUNT(*) AS total_productos
 FROM productos
-GROUP BY categoria
+GROUP BY CATEGORIA
 ORDER BY total_productos DESC;
 ```
 
@@ -494,7 +498,7 @@ ORDER BY total_productos DESC;
 -- Top 5 clientes con mayor gasto acumulado en todas sus compras
 SELECT
     id_cliente,
-    SUM(monto_total) AS gasto_total,
+    SUM(total_venta) AS gasto_total,
     COUNT(id_venta)  AS numero_compras
 FROM ventas
 GROUP BY id_cliente
@@ -511,27 +515,27 @@ LIMIT 5;
 SELECT
     id_venta,
     id_cliente,
-    id_producto,
-    monto_total,
+    PRODUCTO,
+    total_venta,
     fecha_venta
 FROM ventas
-ORDER BY fecha_venta DESC, monto_total DESC
+ORDER BY fecha_venta DESC, total_venta DESC
 LIMIT 10;
 ```
 
 **Paso 5.4 — Reporte 3: Top 3 productos más caros de una categoría específica**
 
 ```sql
--- Reemplaza 'NOMBRE_CATEGORIA' con la categoría de mayor variedad
+-- Reemplaza 'NOMBRE_CATEGORIA' con la categoría de mayor variedad 'Accesorios'
 -- identificada en el Paso 5.1
 SELECT
-    nombre_producto,
-    categoria,
-    precio_unitario,
-    stock_disponible
+    NOMBRE_PRODUCTO,
+    CATEGORIA,
+    PRECIO,
+    STOCK
 FROM productos
-WHERE categoria = 'NOMBRE_CATEGORIA'
-ORDER BY precio_unitario DESC
+WHERE CATEGORIA = 'NOMBRE_CATEGORIA'
+ORDER BY PRECIO DESC
 LIMIT 3;
 ```
 
@@ -543,7 +547,7 @@ Ejecuta la siguiente variante del Reporte 1 y compara los resultados:
 -- ¿Qué obtenemos si ordenamos ASC en lugar de DESC?
 SELECT
     id_cliente,
-    SUM(monto_total) AS gasto_total,
+    SUM(total_venta) AS gasto_total,
     COUNT(id_venta)  AS numero_compras
 FROM ventas
 GROUP BY id_cliente
@@ -578,11 +582,11 @@ Una vez completados todos los ejercicios, ejecuta las siguientes consultas de va
 -- Esta consulta debe devolver los productos ordenados correctamente
 -- Criterio: primero por categoría A→Z, luego por precio Z→A
 SELECT
-    nombre_producto,
-    categoria,
-    precio_unitario
+    NOMBRE_PRODUCTO,
+    CATEGORIA,
+    PRECIO
 FROM productos
-ORDER BY categoria ASC, precio_unitario DESC;
+ORDER BY CATEGORIA ASC, PRECIO DESC;
 
 -- AUTOEVALUACIÓN: Verifica manualmente que:
 -- 1. Los productos de la categoría que aparece primero alfabéticamente están al inicio
@@ -596,10 +600,10 @@ ORDER BY categoria ASC, precio_unitario DESC;
 -- Obtener el Top 3 de ventas más antiguas con monto mayor a 100
 SELECT
     id_venta,
-    monto_total,
+    total_venta,
     fecha_venta
 FROM ventas
-WHERE monto_total > 100
+WHERE total_venta > 100
 ORDER BY fecha_venta ASC
 LIMIT 3;
 
@@ -614,10 +618,10 @@ LIMIT 3;
 ```sql
 -- Ejecuta estas dos consultas y confirma que los resultados son opuestos
 -- Consulta A: Top 1 venta más cara
-SELECT id_venta, monto_total FROM ventas ORDER BY monto_total DESC LIMIT 1;
+SELECT id_venta, total_venta FROM ventas ORDER BY total_venta DESC LIMIT 1;
 
 -- Consulta B: Top 1 venta más barata
-SELECT id_venta, monto_total FROM ventas ORDER BY monto_total ASC LIMIT 1;
+SELECT id_venta, total_venta FROM ventas ORDER BY total_venta ASC LIMIT 1;
 
 -- AUTOEVALUACIÓN:
 -- El monto de la Consulta A debe ser MAYOR que el de la Consulta B
@@ -641,7 +645,7 @@ Antes de dar por completado el laboratorio, confirma los siguientes puntos:
 
 ### Problema 1: El orden de los resultados no cambia al agregar ORDER BY
 
-**Síntoma:** Ejecutas una consulta con `ORDER BY precio_unitario DESC` pero los resultados parecen estar en el mismo orden que sin `ORDER BY`. No hay un error visible en Snowsight.
+**Síntoma:** Ejecutas una consulta con `ORDER BY PRECIO DESC` pero los resultados parecen estar en el mismo orden que sin `ORDER BY`. No hay un error visible en Snowsight.
 
 **Causa probable:** Existen dos causas comunes:
 - **Causa A:** La columna especificada en `ORDER BY` tiene todos los valores idénticos o muy similares, por lo que el orden parece no cambiar visualmente.
@@ -652,9 +656,9 @@ Antes de dar por completado el laboratorio, confirma los siguientes puntos:
 ```sql
 -- Paso 1: Verifica que la columna tiene valores variados
 SELECT
-    MIN(precio_unitario) AS precio_minimo,
-    MAX(precio_unitario) AS precio_maximo,
-    COUNT(DISTINCT precio_unitario) AS valores_unicos
+    MIN(PRECIO) AS precio_minimo,
+    MAX(PRECIO) AS precio_maximo,
+    COUNT(DISTINCT PRECIO) AS valores_unicos
 FROM productos;
 
 -- Si precio_minimo = precio_maximo, todos los precios son iguales
@@ -663,19 +667,19 @@ FROM productos;
 -- Paso 2: Si los valores son variados, verifica tu sintaxis
 -- Asegúrate de que no hay un punto y coma (;) antes del ORDER BY
 -- INCORRECTO:
--- SELECT nombre_producto FROM productos; ORDER BY precio_unitario DESC;
+-- SELECT NOMBRE_PRODUCTO FROM productos; ORDER BY PRECIO DESC;
 
 -- CORRECTO:
-SELECT nombre_producto, precio_unitario
+SELECT NOMBRE_PRODUCTO, PRECIO
 FROM productos
-ORDER BY precio_unitario DESC;
+ORDER BY PRECIO DESC;
 ```
 
 ---
 
 ### Problema 2: LIMIT devuelve menos filas de las esperadas
 
-**Síntoma:** Ejecutas `ORDER BY monto_total DESC LIMIT 10` pero solo obtienes 3, 5 o 7 filas en lugar de 10.
+**Síntoma:** Ejecutas `ORDER BY tota_venta DESC LIMIT 10` pero solo obtienes 3, 5 o 7 filas en lugar de 10.
 
 **Causa probable:** La tabla tiene menos registros que el número especificado en `LIMIT`, **o** la cláusula `WHERE` anterior al `ORDER BY` filtró la mayoría de los registros, dejando menos filas disponibles que el límite solicitado.
 
@@ -688,16 +692,16 @@ SELECT COUNT(*) AS total_registros FROM ventas;
 -- Paso 2: Si tienes WHERE, cuenta cuántos registros pasan el filtro
 SELECT COUNT(*) AS registros_filtrados
 FROM ventas
-WHERE monto_total > 500;  -- Reemplaza con tu condición real
+WHERE total_venta > 500;  -- Reemplaza con tu condición real
 
 -- Si registros_filtrados < N (tu LIMIT), es normal que obtengas menos filas.
 -- LIMIT devuelve "hasta N filas", no exactamente N filas.
 
 -- Paso 3: Si el total de la tabla es menor a tu LIMIT, simplemente elimina el LIMIT
 -- para ver todos los registros disponibles, o ajusta el LIMIT a un número menor.
-SELECT id_venta, monto_total, fecha_venta
+SELECT id_venta, total_venta, fecha_venta
 FROM ventas
-ORDER BY monto_total DESC;  -- Sin LIMIT para ver todos los registros
+ORDER BY total_venta DESC;  -- Sin LIMIT para ver todos los registros
 ```
 
 > **Regla importante:** `LIMIT N` significa "devuelve **como máximo** N filas". Si la tabla (o el resultado filtrado) tiene menos de N filas, Snowflake devuelve todas las disponibles sin generar un error.
