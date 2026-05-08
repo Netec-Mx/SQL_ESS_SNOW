@@ -558,7 +558,7 @@ FROM PRODUCTOS;
 -- Paso 3.2: Seleccionar columnas específicas de CLIENTES
 -- Ajusta los nombres de columna según la estructura que viste en el Paso 1
 
-SELECT NOMBRE, CORREO, PAIS
+SELECT NOMBRE, EMAIL, PAIS
 FROM CLIENTES;
 ```
 
@@ -635,7 +635,7 @@ FROM PRODUCTOS;
 
 SELECT 
     NOMBRE           AS "Cliente",
-    CORREO           AS "Correo Electrónico",
+    EMAIL           AS "Correo Electrónico",
     PAIS             AS "País de Origen",
     FECHA_REGISTRO   AS "Fecha de Alta"
 FROM CLIENTES;
@@ -1012,14 +1012,7 @@ FROM PRODUCTOS;
 
 Al finalizar el laboratorio, realiza las siguientes acciones para conservar los créditos de tu cuenta Snowflake y mantener el entorno ordenado.
 
-### 1. Guardar el worksheet
-
-Snowflake guarda los worksheets automáticamente, pero es buena práctica verificar:
-
-1. Confirma que el worksheet se llama `Lab_01_Exploracion_Inicial`.
-2. Snowsight guarda el contenido automáticamente al escribir. No es necesario hacer clic en "Guardar".
-
-### 2. Suspender el Virtual Warehouse
+### 1. Suspender el Virtual Warehouse
 
 Para detener el consumo de créditos, suspende el warehouse manualmente:
 
