@@ -81,7 +81,7 @@ Al completar este laboratorio, serás capaz de:
 2. En el menú lateral izquierdo, haz clic en **Projects → Workspaces**.
 3. Selecciona el Workspace llamado **`Setup_CURSO_SQLSNOW`**.
 5. Da clic en **Add new** y crea un nuevo archivo tipo **SQL**
-6. Escribe el siguiente nombre del archivo: **`Setup_Lab02_Ventas.sql`**
+6. Escribe el siguiente nombre del archivo: **`Setup_Lab02_Ventas`**
 7. A la derecha selecciona el warehouse **`COMPUTE_WH`** o el warehouse asignado/creado al inicio de la creación de la cuenta.
 8. Copia/Pega y ejecuta el siguiente script completo.
 
@@ -311,6 +311,7 @@ Antes de filtrar datos, es fundamental conocer la estructura de las tablas con l
 |------------------|----------------|-----------------------------------------|
 | ID_VENTA         | NUMBER         | Identificador único de la venta         |
 | ID_CLIENTE       | NUMBER         | Cliente que realizó la compra           |
+| ID_PRODUCTO         | NUMBER         | Identificador único del producto         |
 | PRODUCTO         | VARCHAR        | Nombre del producto vendido             |
 | CATEGORIA        | VARCHAR        | Categoría del producto                  |
 | CANTIDAD         | NUMBER         | Unidades vendidas                       |
@@ -319,6 +320,7 @@ Antes de filtrar datos, es fundamental conocer la estructura de las tablas con l
 | FECHA_VENTA      | DATE           | Fecha de la venta                       |
 | REGION           | VARCHAR        | Región geográfica de la venta           |
 | ESTADO_ENVIO     | VARCHAR        | Estado del envío (puede ser NULL)       |
+| VENDEDOR         | VARCHAR        | Nombre del Vendedor                     |
 
 ---
 
@@ -729,15 +731,15 @@ WHERE PAIS = 'México'
 ```sql
 -- Clientes cuyo nombre empieza con A
 -- % significa "cualquier cantidad de caracteres después de A"
-SELECT ID_CLIENTE, NOMBRE, PAIS, CORREO
+SELECT ID_CLIENTE, NOMBRE, PAIS, EMAIL
 FROM CLIENTES
 WHERE NOMBRE LIKE 'A%';
 ```
 
-2. Encuentra clientes cuyo nombre termina con `'ez'` (apellidos como López, Pérez, Gómez):
+2. Encuentra clientes cuyo nombre termina con `'el'` (apellidos como Daniel, Miguel):
 
 ```sql
--- Clientes cuyo nombre termina en 'ez'
+-- Clientes cuyo nombre termina en 'el'
 -- % al inicio significa "cualquier texto antes de ez"
 SELECT ID_CLIENTE, NOMBRE, PAIS
 FROM CLIENTES
@@ -769,9 +771,9 @@ WHERE PRODUCTO LIKE '%Pro%';
 -- Patrón con _ : exactamente UN carácter en esa posición
 -- Ejemplo: busca emails donde el dominio empieza con una letra específica
 -- _ representa exactamente 1 carácter
-SELECT ID_CLIENTE, NOMBRE, CORREO
+SELECT ID_CLIENTE, NOMBRE, EMAIL
 FROM CLIENTES
-WHERE CORREO LIKE '%@example.com';
+WHERE EMAIL LIKE '%@example.com';
 -- Esto coincide con @gmail.com, @amail.com, @zmail.com, etc.
 ```
 
@@ -948,7 +950,7 @@ FROM CLIENTES
 WHERE PAIS IN ('México', 'Colombia', 'Chile')
   AND SEGMENTO IN ('Retail', 'Corporativo')
   AND EMAIL IS NOT NULL
-  AND FECHA_REGISTRO < '2023-01-01'
+  AND FECHA_REGISTRO < '2024-01-01'
 ORDER BY PAIS, NOMBRE;
 ```
 
