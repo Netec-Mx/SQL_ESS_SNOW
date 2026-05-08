@@ -1,3 +1,7 @@
+
+
+
+
 # Métricas básicas
 
 ## Metadatos
@@ -76,7 +80,12 @@ Al finalizar este laboratorio, serás capaz de:
 
 Antes de comenzar los ejercicios, ejecuta los siguientes comandos en un nuevo Worksheet de Snowsight para establecer el contexto correcto. Esto garantiza que todas las consultas del laboratorio apunten al dataset correcto.
 
-> **⚠️ Nota para entornos compartidos:** Si compartes un entorno Snowflake corporativo, reemplaza `PUBLIC` por el schema asignado a tu usuario (ej. `ESTUDIANTE_01`). Consulta con tu instructor.
+1. Clic en la sección **Projects** y luego clic en **Workspaces**.
+2. Abre tu **Workspace** llamado **SnowEssLAbs**.
+3. Crea un archivo de tipo SQL llamado **`Lab05_Metricas`**.
+4. Ejecuta los siguientes comandos para asegurarte de estar trabajando en el contexto correcto:
+   
+> **⚠️ Nota:** Si la tabla **VENTAS** no aparece ve al **Workspace** llamado **Setup_CURSO_SQLSNOW** y ejecuta el script llamado **Setup_Lab02_Ventas**.
 
 ```sql
 -- Paso 1: Seleccionar la base de datos del curso
@@ -105,11 +114,11 @@ Tómate un momento para observar las columnas disponibles. Las columnas clave qu
 
 **Tabla VENTAS:**
 - `VENTA_ID` — Identificador único de cada venta
-- `CLIENTE_ID` — Identificador del cliente (puede contener NULLs)
+- `ID_CLIENTE` — Identificador del cliente (puede contener NULLs)
 - `PRODUCTO_ID` — Identificador del producto vendido
-- `MONTO` — Valor monetario de la venta
+- `CANTIDAD` — Valor monetario de la venta
 - `FECHA_VENTA` — Fecha en que se realizó la venta
-- `ESTADO` — Estado de la venta (`completada`, `pendiente`, `cancelada`)
+- `ESTADO_ENVIO` — Estado de la venta (`completada`, `pendiente`, `cancelada`)
 
 **Tabla PRODUCTOS:**
 - `PRODUCTO_ID` — Identificador único del producto
@@ -150,14 +159,14 @@ FROM VENTAS;
 
 **1.2 — Detectar ventas sin cliente asignado**
 
-Ahora compara `COUNT(*)` con `COUNT(CLIENTE_ID)` para identificar cuántas ventas no tienen un cliente registrado.
+Ahora compara `COUNT(*)` con `COUNT(ID_CLIENTE)` para identificar cuántas ventas no tienen un cliente registrado.
 
 ```sql
 -- Consulta 1.2: Comparación COUNT(*) vs COUNT(columna)
 SELECT
     COUNT(*)          AS total_filas,
-    COUNT(CLIENTE_ID) AS ventas_con_cliente,
-    COUNT(*) - COUNT(CLIENTE_ID) AS ventas_sin_cliente
+    COUNT(ID_CLIENTE) AS ventas_con_cliente,
+    COUNT(*) - COUNT(ID_CLIENTE) AS ventas_sin_cliente
 FROM VENTAS;
 ```
 
@@ -167,7 +176,7 @@ FROM VENTAS;
 |:-----------:|:------------------:|:------------------:|
 | 500         | 487                | 13                 |
 
-> **Nota:** Los números exactos dependerán de tu dataset. Lo importante es que `VENTAS_SIN_CLIENTE` muestre la diferencia entre ambos conteos, lo que revela cuántas filas tienen `NULL` en `CLIENTE_ID`.
+> **Nota:** Los números exactos dependerán de tu dataset. Lo importante es que `VENTAS_SIN_CLIENTE` muestre la diferencia entre ambos conteos, lo que revela cuántas filas tienen `NULL` en `ID_CLIENTE`.
 
 > **Concepto clave:** `COUNT(columna)` ignora los valores `NULL`. Esta diferencia entre `COUNT(*)` y `COUNT(columna)` es una técnica estándar de auditoría de calidad de datos.
 
@@ -179,7 +188,7 @@ Utiliza `COUNT(DISTINCT columna)` para responder: *¿Cuántos clientes diferente
 
 ```sql
 -- Consulta 1.3: Clientes únicos con compras registradas
-SELECT COUNT(DISTINCT CLIENTE_ID) AS clientes_unicos
+SELECT COUNT(DISTINCT ID_CLIENTE) AS clientes_unicos
 FROM VENTAS;
 ```
 
@@ -201,7 +210,7 @@ Combina `COUNT(*)` con `WHERE` para contar solo las ventas con estado `'completa
 -- Consulta 1.4: Ventas completadas
 SELECT COUNT(*) AS ventas_completadas
 FROM VENTAS
-WHERE ESTADO = 'completada';
+WHERE ESTADO_ENVIO = 'Entregado';
 ```
 
 Repite la consulta para los otros estados. Puedes ejecutarlas una por una o combinarlas:
@@ -210,11 +219,12 @@ Repite la consulta para los otros estados. Puedes ejecutarlas una por una o comb
 -- Consulta 1.4b: Resumen de ventas por estado (anticipo de GROUP BY)
 SELECT COUNT(*) AS ventas_pendientes
 FROM VENTAS
-WHERE ESTADO = 'pendiente';
-
+WHERE ESTADO_ENVIO = 'Pendiente';
+```
+```sql
 SELECT COUNT(*) AS ventas_canceladas
 FROM VENTAS
-WHERE ESTADO = 'cancelada';
+WHERE ESTADO_ENVIO = 'Cancelado';
 ```
 
 **Resultado esperado (ejemplo):**
@@ -244,7 +254,7 @@ Confirma que tus resultados son coherentes respondiendo estas preguntas mentalme
 
 ```sql
 -- Consulta 2.1: Ingreso total acumulado
-SELECT SUM(MONTO) AS ingreso_total
+SELECT SUM(CANTIDAD) AS ingreso_total
 FROM VENTAS;
 ```
 
@@ -262,9 +272,9 @@ FROM VENTAS;
 
 ```sql
 -- Consulta 2.2: Ingresos de ventas completadas
-SELECT SUM(MONTO) AS ingresos_completadas
+SELECT SUM(CANTIDAD) AS ingresos_completadas
 FROM VENTAS
-WHERE ESTADO = 'completada';
+WHERE ESTADO_ENVIO = 'Entregado';
 ```
 
 **Resultado esperado:**
@@ -282,8 +292,8 @@ Construye una consulta que calcule simultáneamente el total de ingresos por ven
 ```sql
 -- Consulta 2.3: Ingresos realizados vs. ingresos perdidos
 SELECT
-    SUM(CASE WHEN ESTADO = 'completada' THEN MONTO ELSE 0 END) AS ingresos_realizados,
-    SUM(CASE WHEN ESTADO = 'cancelada'  THEN MONTO ELSE 0 END) AS ingresos_perdidos
+    SUM(CASE WHEN ESTADO_ENVIO = 'Entregado' THEN CANTIDAD ELSE 0 END) AS ingresos_realizados,
+    SUM(CASE WHEN ESTADO_ENVIO = 'Cancelado'  THEN CANTIDAD ELSE 0 END) AS ingresos_perdidos
 FROM VENTAS;
 ```
 
@@ -299,13 +309,13 @@ FROM VENTAS;
 
 ```sql
 -- Alternativa 2.3: Dos consultas independientes con WHERE
-SELECT SUM(MONTO) AS ingresos_realizados
+SELECT SUM(CANTIDAD) AS ingresos_realizados
 FROM VENTAS
-WHERE ESTADO = 'completada';
+WHERE ESTADO_ENVIO = 'Entregado';
 
-SELECT SUM(MONTO) AS ingresos_perdidos
+SELECT SUM(CANTIDAD) AS ingresos_perdidos
 FROM VENTAS
-WHERE ESTADO = 'cancelada';
+WHERE ESTADO_ENVIO = 'Cancelado';
 ```
 
 #### Verificación del Ejercicio 2
@@ -325,7 +335,7 @@ WHERE ESTADO = 'cancelada';
 
 ```sql
 -- Consulta 3.1: Ticket promedio general
-SELECT AVG(MONTO) AS ticket_promedio
+SELECT AVG(CANTIDAD) AS ticket_promedio
 FROM VENTAS;
 ```
 
@@ -343,12 +353,12 @@ FROM VENTAS;
 
 ```sql
 -- Consulta 3.2: Promedio general vs. promedio de ventas completadas
-SELECT AVG(MONTO) AS promedio_general
+SELECT AVG(CANTIDAD) AS promedio_general
 FROM VENTAS;
 
-SELECT AVG(MONTO) AS promedio_completadas
+SELECT AVG(CANTIDAD) AS promedio_completadas
 FROM VENTAS
-WHERE ESTADO = 'completada';
+WHERE ESTADO_ENVIO = 'Entregado';
 ```
 
 > **Pregunta de análisis:** ¿El promedio de ventas completadas es mayor, menor o igual al promedio general? Reflexiona sobre por qué podría diferir.
@@ -392,8 +402,8 @@ FROM PRODUCTOS;
 ```sql
 -- Consulta 4.1: Rango de montos de venta
 SELECT
-    MIN(MONTO) AS venta_minima,
-    MAX(MONTO) AS venta_maxima
+    MIN(CANTIDAD) AS venta_minima,
+    MAX(CANTIDAD) AS venta_maxima
 FROM VENTAS;
 ```
 
@@ -453,10 +463,10 @@ FROM PRODUCTOS;
 ```sql
 -- Consulta 4.4: MIN y MAX solo para ventas completadas
 SELECT
-    MIN(MONTO) AS min_completadas,
-    MAX(MONTO) AS max_completadas
+    MIN(CANTIDAD) AS min_completadas,
+    MAX(CANTIDAD) AS max_completadas
 FROM VENTAS
-WHERE ESTADO = 'completada';
+WHERE ESTADO_ENVIO = 'Entregado';
 ```
 
 #### Verificación del Ejercicio 4
@@ -484,18 +494,18 @@ Construye la siguiente consulta paso a paso. Primero escríbela completa y luego
 SELECT
     -- Métricas de volumen (COUNT)
     COUNT(*)                    AS total_transacciones,
-    COUNT(CLIENTE_ID)           AS transacciones_con_cliente,
-    COUNT(DISTINCT CLIENTE_ID)  AS clientes_unicos,
+    COUNT(ID_CLIENTE)           AS transacciones_con_cliente,
+    COUNT(DISTINCT ID_CLIENTE)  AS clientes_unicos,
 
     -- Métricas financieras (SUM)
-    SUM(MONTO)                  AS ingreso_total,
+    SUM(CANTIDAD)                  AS ingreso_total,
 
     -- Métricas de ticket (AVG)
-    ROUND(AVG(MONTO), 2)        AS ticket_promedio,
+    ROUND(AVG(CANTIDAD), 2)        AS ticket_promedio,
 
     -- Métricas de rango (MIN / MAX)
-    MIN(MONTO)                  AS venta_minima,
-    MAX(MONTO)                  AS venta_maxima,
+    MIN(CANTIDAD)                  AS venta_minima,
+    MAX(CANTIDAD)                  AS venta_maxima,
     MIN(FECHA_VENTA)            AS primera_venta,
     MAX(FECHA_VENTA)            AS ultima_venta
 FROM VENTAS;
@@ -519,16 +529,16 @@ Ahora replica el mismo dashboard pero filtrando únicamente las ventas con estad
 -- Consulta 5.2: Dashboard de métricas — solo ventas completadas
 SELECT
     COUNT(*)                    AS total_transacciones,
-    COUNT(CLIENTE_ID)           AS transacciones_con_cliente,
-    COUNT(DISTINCT CLIENTE_ID)  AS clientes_unicos,
-    SUM(MONTO)                  AS ingreso_total,
-    ROUND(AVG(MONTO), 2)        AS ticket_promedio,
-    MIN(MONTO)                  AS venta_minima,
-    MAX(MONTO)                  AS venta_maxima,
+    COUNT(ID_CLIENTE)           AS transacciones_con_cliente,
+    COUNT(DISTINCT ID_CLIENTE)  AS clientes_unicos,
+    SUM(CANTIDAD)                  AS ingreso_total,
+    ROUND(AVG(CANTIDAD), 2)        AS ticket_promedio,
+    MIN(CANTIDAD)                  AS venta_minima,
+    MAX(CANTIDAD)                  AS venta_maxima,
     MIN(FECHA_VENTA)            AS primera_venta,
     MAX(FECHA_VENTA)            AS ultima_venta
 FROM VENTAS
-WHERE ESTADO = 'completada';
+WHERE ESTADO_ENVIO = 'Entregado';
 ```
 
 > **Observación clave:** La cláusula `WHERE` se aplica **antes** de que las funciones de agregación calculen sus resultados. Snowflake primero filtra las filas que cumplen `ESTADO = 'completada'` y luego aplica `COUNT`, `SUM`, `AVG`, `MIN` y `MAX` sobre ese subconjunto de filas. Este es el orden lógico de ejecución de SQL.
@@ -576,9 +586,9 @@ Ejecuta las siguientes consultas de validación para confirmar que todos tus res
 -- (Asumiendo que solo existen los estados: completada, pendiente, cancelada)
 SELECT
     COUNT(*) AS total_verificacion,
-    COUNT(CASE WHEN ESTADO = 'completada' THEN 1 END) +
-    COUNT(CASE WHEN ESTADO = 'pendiente'  THEN 1 END) +
-    COUNT(CASE WHEN ESTADO = 'cancelada'  THEN 1 END) AS suma_por_estado
+    COUNT(CASE WHEN ESTADO_ENVIO = 'Entregado' THEN 1 END) +
+    COUNT(CASE WHEN ESTADO_ENVIO = 'Pendiente'  THEN 1 END) +
+    COUNT(CASE WHEN ESTADO_ENVIO = 'Cancelado'  THEN 1 END) AS suma_por_estado
 FROM VENTAS;
 -- Ambas columnas deben tener el mismo valor
 ```
@@ -586,10 +596,10 @@ FROM VENTAS;
 ```sql
 -- Validación 2: El ingreso total debe ser mayor que el ingreso de solo completadas
 SELECT
-    (SELECT SUM(MONTO) FROM VENTAS)                           AS ingreso_total,
-    (SELECT SUM(MONTO) FROM VENTAS WHERE ESTADO = 'completada') AS ingreso_completadas,
-    (SELECT SUM(MONTO) FROM VENTAS) >
-    (SELECT SUM(MONTO) FROM VENTAS WHERE ESTADO = 'completada') AS total_es_mayor
+    (SELECT SUM(CANTIDAD) FROM VENTAS)                           AS ingreso_total,
+    (SELECT SUM(CANTIDAD) FROM VENTAS WHERE ESTADO_ENVIO = 'Entregado') AS ingreso_completadas,
+    (SELECT SUM(CANTIDAD) FROM VENTAS) >
+    (SELECT SUM(CANTIDAD) FROM VENTAS WHERE ESTADO_ENVIO = 'Entregado') AS total_es_mayor
 FROM DUAL;
 -- total_es_mayor debe ser TRUE
 ```
@@ -599,10 +609,10 @@ FROM DUAL;
 ```sql
 -- Validación 3: AVG debe estar entre MIN y MAX
 SELECT
-    MIN(MONTO)  AS venta_minima,
-    AVG(MONTO)  AS ticket_promedio,
-    MAX(MONTO)  AS venta_maxima,
-    (AVG(MONTO) >= MIN(MONTO) AND AVG(MONTO) <= MAX(MONTO)) AS promedio_en_rango
+    MIN(CANTIDAD)  AS venta_minima,
+    AVG(CANTIDAD)  AS ticket_promedio,
+    MAX(CANTIDAD)  AS venta_maxima,
+    (AVG(CANTIDAD) >= MIN(CANTIDAD) AND AVG(CANTIDAD) <= MAX(CANTIDAD)) AS promedio_en_rango
 FROM VENTAS;
 -- promedio_en_rango debe ser TRUE
 ```
@@ -610,9 +620,9 @@ FROM VENTAS;
 ```sql
 -- Validación 4: COUNT(DISTINCT) debe ser <= COUNT(columna)
 SELECT
-    COUNT(CLIENTE_ID)           AS conteo_total,
-    COUNT(DISTINCT CLIENTE_ID)  AS conteo_unico,
-    COUNT(CLIENTE_ID) >= COUNT(DISTINCT CLIENTE_ID) AS logica_correcta
+    COUNT(ID_CLIENTE)           AS conteo_total,
+    COUNT(DISTINCT ID_CLIENTE)  AS conteo_unico,
+    COUNT(ID_CLIENTE) >= COUNT(DISTINCT ID_CLIENTE) AS logica_correcta
 FROM VENTAS;
 -- logica_correcta debe ser TRUE
 ```
@@ -633,7 +643,7 @@ FROM VENTAS;
 
 ### Problema 1: La consulta devuelve NULL en lugar de un número
 
-**Síntoma:** Al ejecutar `SELECT SUM(MONTO) FROM VENTAS` o `SELECT AVG(MONTO) FROM VENTAS`, el resultado muestra `NULL` en lugar de un valor numérico.
+**Síntoma:** Al ejecutar `SELECT SUM(CANTIDAD) FROM VENTAS` o `SELECT AVG(CANTIDAD) FROM VENTAS`, el resultado muestra `NULL` en lugar de un valor numérico.
 
 **Causa:** Esto ocurre cuando **todos** los valores de la columna `MONTO` son `NULL`. Las funciones de agregación `SUM`, `AVG`, `MIN` y `MAX` devuelven `NULL` cuando no hay valores no nulos para procesar. También puede ocurrir si la tabla está vacía (cero filas) o si la cláusula `WHERE` filtra todas las filas.
 
@@ -645,14 +655,14 @@ SELECT COUNT(*) FROM VENTAS;
 -- Si devuelve 0, la tabla está vacía. Ejecutar el script de inicialización del dataset.
 
 -- Paso 2: Verificar si hay valores no nulos en MONTO
-SELECT COUNT(MONTO) AS filas_con_monto FROM VENTAS;
--- Si devuelve 0, todos los valores de MONTO son NULL.
+SELECT COUNT(CANTIDAD) AS filas_con_monto FROM VENTAS;
+-- Si devuelve 0, todos los valores de CANTIDAD son NULL.
 
 -- Paso 3: Si usaste WHERE, verificar que la condición no filtra todo
-SELECT COUNT(*) FROM VENTAS WHERE ESTADO = 'completada';
+SELECT COUNT(*) FROM VENTAS WHERE ESTADO_ENVIO = 'Entregado';
 -- Si devuelve 0, el valor del filtro no existe en los datos.
 -- Verificar los valores existentes:
-SELECT DISTINCT ESTADO FROM VENTAS;
+SELECT DISTINCT ESTADO_ENVIO FROM VENTAS;
 ```
 
 Si la tabla está vacía, solicita al instructor que vuelva a ejecutar el script de inicialización del dataset `CURSO_SQL`.
@@ -661,7 +671,7 @@ Si la tabla está vacía, solicita al instructor que vuelva a ejecutar el script
 
 ### Problema 2: Error "SQL compilation error: ambiguous column name" al ejecutar el dashboard integrador
 
-**Síntoma:** Al ejecutar la consulta del Ejercicio 5 (o cualquier consulta con múltiples funciones de agregación), Snowflake lanza el error `SQL compilation error: ambiguous column name 'MONTO'` o similar.
+**Síntoma:** Al ejecutar la consulta del Ejercicio 5 (o cualquier consulta con múltiples funciones de agregación), Snowflake lanza el error `SQL compilation error: ambiguous column name 'CANTIDAD'` o similar.
 
 **Causa:** Este error ocurre cuando se intenta hacer un `JOIN` implícito o cuando se referencian tablas sin calificar el nombre de la columna. En el contexto de este laboratorio, la causa más probable es que el estudiante haya modificado la consulta del dashboard para incluir columnas de ambas tablas (`VENTAS` y `PRODUCTOS`) sin especificar a qué tabla pertenece cada columna.
 
@@ -669,20 +679,20 @@ Si la tabla está vacía, solicita al instructor que vuelva a ejecutar el script
 
 ```sql
 -- INCORRECTO: Snowflake no sabe a qué tabla pertenece MONTO si hay JOIN
-SELECT COUNT(*), SUM(MONTO), AVG(PRECIO)
+SELECT COUNT(*), SUM(CANTIDAD), AVG(PRECIO)
 FROM VENTAS, PRODUCTOS;  -- Este tipo de JOIN sin condición es un producto cartesiano
 
 -- CORRECTO: Calificar cada columna con su tabla de origen
 SELECT
     COUNT(*)                AS total_ventas,
-    SUM(v.MONTO)            AS ingreso_total,
+    SUM(v.CANTIDAD)            AS ingreso_total,
     AVG(p.PRECIO)           AS precio_promedio_catalogo
 FROM VENTAS v
 JOIN PRODUCTOS p ON v.PRODUCTO_ID = p.PRODUCTO_ID;
 
 -- MÁS SIMPLE: Si solo necesitas métricas de una tabla, no hagas JOIN
 -- Dashboard de VENTAS:
-SELECT COUNT(*), SUM(MONTO), AVG(MONTO), MIN(MONTO), MAX(MONTO)
+SELECT COUNT(*), SUM(CANTIDAD), AVG(CANTIDAD), MIN(CANTIDAD), MAX(CANTIDAD)
 FROM VENTAS;
 
 -- Dashboard de PRODUCTOS (consulta separada):
