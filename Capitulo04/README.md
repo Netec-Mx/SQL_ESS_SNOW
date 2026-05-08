@@ -68,6 +68,11 @@ Antes de comenzar los ejercicios, ejecuta los siguientes comandos en una nueva h
 
 **Paso de configuración — Establecer contexto de sesión:**
 
+1. Clic en la sección **Projects** y luego clic en **Workspaces**.
+2. Abre tu **Workspace** llamado **SnowEssLAbs**.
+3. Crea un archivo de tipo SQL llamado **`Lab04_Transformacion`**.
+4. Ejecuta los siguientes comandos para asegurarte de estar trabajando en el contexto correcto:
+   
 ```sql
 -- 1. Seleccionar la base de datos del curso
 USE DATABASE CURSO_SQL;
@@ -106,12 +111,10 @@ SELECT CURRENT_DATABASE(), CURRENT_SCHEMA(), CURRENT_WAREHOUSE();
 
 #### Instrucciones
 
-1. En Snowsight, abre una nueva **Worksheet** haciendo clic en el ícono `+` en el panel izquierdo o seleccionando **Projects → Worksheets → + Worksheet**.
+1. En Snowsight, dentro de tu archivo SQL **Lab04_Transformacion** ve ejecutando las siguientes consultas.
 
-2. Asegúrate de que el contexto de sesión esté configurado (ver sección anterior). Verifica que en la parte superior de la Worksheet aparezcan seleccionados tu base de datos, schema y warehouse.
-
-3. Ejecuta la siguiente consulta para explorar la tabla `CLIENTES`:
-
+2. Ejecuta la siguiente consulta para explorar la tabla `CLIENTES`:
+   
 ```sql
 -- Explorar estructura y datos de la tabla CLIENTES
 SELECT *
@@ -246,12 +249,12 @@ SELECT
     UPPER(CATEGORIA)       AS categoria,
     PRECIO
 FROM PRODUCTOS
-WHERE LOWER(CATEGORIA) = 'electronica';
+WHERE LOWER(CATEGORIA) = 'electrónica';
 ```
 
 3. Analiza la consulta anterior. Nota que:
    - En `SELECT` usamos `UPPER` para presentar los datos en mayúsculas (formato de reporte).
-   - En `WHERE` usamos `LOWER` para comparar de forma segura, convirtiendo el valor almacenado a minúsculas antes de compararlo con la cadena `'electronica'` (también en minúsculas).
+   - En `WHERE` usamos `LOWER` para comparar de forma segura, convirtiendo el valor almacenado a minúsculas antes de compararlo con la cadena `'electrónica'` (también en minúsculas).
 
 4. Prueba qué sucede si ejecutas el filtro **sin** `LOWER`:
 
@@ -262,7 +265,7 @@ SELECT
     NOMBRE_PRODUCTO,
     CATEGORIA
 FROM PRODUCTOS
-WHERE CATEGORIA = 'electronica';
+WHERE CATEGORIA = 'electrónica';
 ```
 
 5. Compara la cantidad de filas retornadas en los pasos 2 y 4.
@@ -403,7 +406,7 @@ SELECT
     ID_PRODUCTO,
     NOMBRE_PRODUCTO,
     PRECIO                    AS precio_original,
-    ROUND(PRECIO, 2)          AS precio_redondeado
+    ROUND(PRECIO, 1)          AS precio_redondeado
 FROM PRODUCTOS
 LIMIT 10;
 ```
@@ -641,7 +644,7 @@ SELECT
     LOWER(CATEGORIA)                                             AS categoria_lower,
     UPPER(NOMBRE_PRODUCTO)                                       AS nombre_upper
 FROM PRODUCTOS
-WHERE LOWER(CATEGORIA) = 'electronica'
+WHERE LOWER(CATEGORIA) = 'electrónica'
 ORDER BY PRECIO DESC
 LIMIT 5;
 ```
@@ -726,19 +729,7 @@ LIMIT 10;
 
 Al finalizar el laboratorio, realiza los siguientes pasos para liberar recursos y minimizar el consumo de créditos en tu cuenta Snowflake.
 
-### 1. Guardar tu Trabajo
-
-Antes de cerrar, guarda las consultas más importantes en la Worksheet:
-
-```sql
--- Guardar el nombre de la worksheet para referencia futura
--- En Snowsight: haz clic en el nombre de la Worksheet en la parte superior
--- y renómbrala como "Lab04_Transformacion_Datos"
-```
-
-En Snowsight, haz clic en el nombre de la Worksheet (por defecto aparece como `Worksheet` con fecha y hora) y renómbrala como `Lab04_Transformacion_Datos` para poder encontrarla fácilmente en sesiones futuras.
-
-### 2. Suspender el Virtual Warehouse
+### 1. Suspender el Virtual Warehouse
 
 Ejecuta el siguiente comando para suspender el warehouse inmediatamente y detener el consumo de créditos:
 
@@ -750,7 +741,7 @@ ALTER WAREHOUSE NOMBRE_WH SUSPEND;
 
 Alternativamente, en Snowsight ve a **Admin → Warehouses**, localiza tu warehouse y haz clic en **Suspend**.
 
-### 3. Verificar que No Hay Objetos Temporales
+### 2. Verificar que No Hay Objetos Temporales
 
 Este laboratorio no crea tablas, vistas ni objetos permanentes. Todas las transformaciones se realizaron exclusivamente dentro de consultas `SELECT`. No es necesario ejecutar comandos `DROP` para limpiar.
 
