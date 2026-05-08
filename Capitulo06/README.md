@@ -64,9 +64,12 @@ Al finalizar este laboratorio, serás capaz de:
 
 Antes de comenzar los ejercicios, ejecuta los siguientes comandos de configuración en un nuevo Worksheet de Snowsight. Esto garantiza que todas las consultas del laboratorio apunten al contexto correcto.
 
-> **⚠️ Nota para entornos compartidos:** Si compartes un entorno corporativo, reemplaza `ESTUDIANTE_XX` con el schema asignado por tu instructor (por ejemplo, `ESTUDIANTE_01`).
-
 > **💡 Consejo de costos:** Usa un Virtual Warehouse de tamaño `X-Small` para minimizar el consumo de créditos en tu cuenta trial.
+
+1. Clic en la sección **Projects** y luego clic en **Workspaces**.
+2. Abre tu **Workspace** llamado **SnowEssLAbs**.
+3. Crea un archivo de tipo SQL llamado **`Lab06_Analisis_Categorias`**.
+4. Ejecuta los siguientes comandos para asegurarte de estar trabajando en el contexto correcto:
 
 ```sql
 -- Paso 1: Seleccionar el rol de trabajo
@@ -81,8 +84,6 @@ USE DATABASE CURSO_SQL;
 -- Paso 4: Seleccionar el schema correspondiente
 -- En cuenta trial individual:
 USE SCHEMA PUBLIC;
--- En entorno compartido, usar el schema asignado:
--- USE SCHEMA ESTUDIANTE_XX;
 
 -- Paso 5: Verificar que las tablas del curso estén disponibles
 SHOW TABLES;
@@ -110,11 +111,7 @@ Tómate un momento para familiarizarte con las columnas disponibles en cada tabl
 
 #### Instrucciones
 
-1. Abre un nuevo **Worksheet** en Snowsight. Nómbralo `Lab_06_Analisis_Categorias`.
-
-2. Asegúrate de haber ejecutado los comandos de configuración del entorno (sección anterior).
-
-3. Ejecuta la siguiente consulta para explorar la estructura completa de la tabla `VENTAS`:
+1. Ejecuta la siguiente consulta para explorar la estructura completa de la tabla `VENTAS`:
 
 ```sql
 -- Exploración de la tabla VENTAS
@@ -198,10 +195,10 @@ GROUP BY REGION;
 SELECT
     REGION,
     COUNT(*)                        AS total_transacciones,
-    SUM(MONTO_TOTAL)                AS ingreso_total,
-    AVG(MONTO_TOTAL)                AS ticket_promedio,
-    MIN(MONTO_TOTAL)                AS venta_minima,
-    MAX(MONTO_TOTAL)                AS venta_maxima
+    SUM(TOTAL_VENTA)                AS ingreso_total,
+    AVG(TOTAL_VENTA)                AS ticket_promedio,
+    MIN(TOTAL_VENTA)                AS venta_minima,
+    MAX(TOTAL_VENTA)                AS venta_maxima
 FROM VENTAS
 GROUP BY REGION
 ORDER BY ingreso_total DESC;
@@ -233,7 +230,8 @@ SELECT
 FROM VENTAS
 GROUP BY REGION, VENDEDOR
 ORDER BY REGION, total_transacciones DESC;
-
+```
+```sql
 -- Opción B: Eliminar VENDEDOR del SELECT
 SELECT
     REGION,
@@ -289,10 +287,10 @@ WHERE TABLE_NAME = 'VENTAS'
 SELECT
     CATEGORIA,
     COUNT(*)                        AS total_ventas,
-    SUM(MONTO_TOTAL)                AS ingreso_total,
-    ROUND(AVG(MONTO_TOTAL), 2)      AS ingreso_promedio,
-    MIN(MONTO_TOTAL)                AS ingreso_minimo,
-    MAX(MONTO_TOTAL)                AS ingreso_maximo
+    SUM(TOTAL_VENTA)                AS ingreso_total,
+    ROUND(AVG(TOTAL_VENTA), 2)      AS ingreso_promedio,
+    MIN(TOTAL_VENTA)                AS ingreso_minimo,
+    MAX(TOTAL_VENTA)                AS ingreso_maximo
 FROM VENTAS
 GROUP BY CATEGORIA
 ORDER BY ingreso_total DESC;
@@ -305,10 +303,10 @@ ORDER BY ingreso_total DESC;
 SELECT
     P.CATEGORIA,
     COUNT(*)                        AS total_ventas,
-    SUM(V.MONTO_TOTAL)              AS ingreso_total,
-    ROUND(AVG(V.MONTO_TOTAL), 2)    AS ingreso_promedio,
-    MIN(V.MONTO_TOTAL)              AS ingreso_minimo,
-    MAX(V.MONTO_TOTAL)              AS ingreso_maximo
+    SUM(V.TOTAL_VENTA)              AS ingreso_total,
+    ROUND(AVG(V.TOTAL_VENTA), 2)    AS ingreso_promedio,
+    MIN(V.TOTAL_VENTA)              AS ingreso_minimo,
+    MAX(V.TOTAL_VENTA)              AS ingreso_maximo
 FROM VENTAS V
     JOIN PRODUCTOS P ON V.ID_PRODUCTO = P.ID_PRODUCTO
 GROUP BY P.CATEGORIA
@@ -323,14 +321,14 @@ SELECT
     CATEGORIA,
     COUNT(*)                        AS total_transacciones,
     SUM(CANTIDAD)                   AS unidades_vendidas,
-    SUM(MONTO_TOTAL)                AS ingreso_total,
-    ROUND(AVG(MONTO_TOTAL), 2)      AS ticket_promedio
+    SUM(TOTAL_VENTA)                AS ingreso_total,
+    ROUND(AVG(TOTAL_VENTA), 2)      AS ticket_promedio
 FROM VENTAS
 GROUP BY CATEGORIA
 ORDER BY unidades_vendidas DESC;
 ```
 
-> **Nota:** Ajusta los nombres de columna (`CANTIDAD`, `MONTO_TOTAL`, `CATEGORIA`) según los que existan en tu dataset. Usa `DESCRIBE TABLE VENTAS` si tienes dudas.
+> **Nota:** Ajusta los nombres de columna (`CANTIDAD`, `TOTAL_VENTA`, `CATEGORIA`) según los que existan en tu dataset. Usa `DESCRIBE TABLE VENTAS` si tienes dudas.
 
 5. Interpreta los resultados: ¿Qué categoría genera más ingresos? ¿Coincide con la que tiene más transacciones? ¿Por qué podrían diferir?
 
@@ -370,7 +368,7 @@ SELECT
     REGION,
     CATEGORIA,
     COUNT(*)                        AS total_ventas,
-    SUM(MONTO_TOTAL)                AS ingreso_total
+    SUM(TOTAL_VENTA)                AS ingreso_total
 FROM VENTAS
 GROUP BY REGION, CATEGORIA
 ORDER BY REGION ASC, ingreso_total DESC;
@@ -387,7 +385,7 @@ SELECT
     REGION,
     CATEGORIA,
     COUNT(*)                            AS total_ventas,
-    SUM(MONTO_TOTAL)                    AS ingreso_total
+    SUM(TOTAL_VENTA)                    AS ingreso_total
 FROM VENTAS
 GROUP BY DATE_TRUNC('MONTH', FECHA_VENTA), REGION, CATEGORIA
 ORDER BY mes_venta ASC, REGION ASC, ingreso_total DESC;
@@ -452,12 +450,12 @@ ORDER BY total_ventas DESC;
 SELECT
     CATEGORIA,
     COUNT(*)                    AS total_ventas,
-    SUM(MONTO_TOTAL)            AS ingreso_total,
-    ROUND(AVG(MONTO_TOTAL), 2)  AS ticket_promedio
+    SUM(TOTAL_VENTA)            AS ingreso_total,
+    ROUND(AVG(TOTAL_VENTA), 2)  AS ticket_promedio
 FROM VENTAS
 GROUP BY CATEGORIA
 HAVING COUNT(*) > 50
-   AND SUM(MONTO_TOTAL) > 20000
+   AND SUM(TOTAL_VENTA) > 20000
 ORDER BY ingreso_total DESC;
 ```
 
@@ -470,7 +468,7 @@ ORDER BY ingreso_total DESC;
 SELECT
     CATEGORIA,
     COUNT(*)                    AS total_ventas,
-    SUM(MONTO_TOTAL)            AS ingreso_total
+    SUM(TOTAL_VENTA)            AS ingreso_total
 FROM VENTAS
 GROUP BY CATEGORIA
 HAVING total_ventas > 50        -- Snowflake permite usar alias de SELECT en HAVING
@@ -511,7 +509,7 @@ Las **Consultas 5.2, 5.3 y 5.4** deben devolver solo las categorías que cumplen
 SELECT
     CATEGORIA,
     COUNT(*)            AS total_ventas,
-    SUM(MONTO_TOTAL)    AS ingreso_total
+    SUM(TOTAL_VENTA)    AS ingreso_total
 FROM VENTAS
 WHERE YEAR(FECHA_VENTA) = 2024      -- Filtra filas: solo ventas del año 2024
 GROUP BY CATEGORIA
@@ -524,7 +522,7 @@ ORDER BY ingreso_total DESC;
 SELECT
     CATEGORIA,
     COUNT(*)            AS total_ventas,
-    SUM(MONTO_TOTAL)    AS ingreso_total
+    SUM(TOTAL_VENTA)    AS ingreso_total
 FROM VENTAS
 GROUP BY CATEGORIA
 ORDER BY ingreso_total DESC;
@@ -540,8 +538,8 @@ ORDER BY ingreso_total DESC;
 SELECT
     CATEGORIA,
     COUNT(*)                    AS total_ventas,
-    SUM(MONTO_TOTAL)            AS ingreso_total,
-    ROUND(AVG(MONTO_TOTAL), 2)  AS ticket_promedio
+    SUM(TOTAL_VENTA)            AS ingreso_total,
+    ROUND(AVG(TOTAL_VENTA), 2)  AS ticket_promedio
 FROM VENTAS
 WHERE YEAR(FECHA_VENTA) = 2024      -- WHERE: filtra filas (solo 2024)
 GROUP BY CATEGORIA
@@ -594,10 +592,10 @@ SELECT
     CATEGORIA,
     COUNT(*)                        AS total_ventas,
     SUM(CANTIDAD)                   AS unidades_vendidas,
-    SUM(MONTO_TOTAL)                AS ingreso_total,
-    ROUND(AVG(MONTO_TOTAL), 2)      AS ticket_promedio,
-    MIN(MONTO_TOTAL)                AS venta_minima,
-    MAX(MONTO_TOTAL)                AS venta_maxima
+    SUM(TOTAL_VENTA)                AS ingreso_total,
+    ROUND(AVG(TOTAL_VENTA), 2)      AS ticket_promedio,
+    MIN(TOTAL_VENTA)                AS venta_minima,
+    MAX(TOTAL_VENTA)                AS venta_maxima
 FROM VENTAS
 GROUP BY CATEGORIA
 ORDER BY ingreso_total DESC;
@@ -611,10 +609,10 @@ SELECT
     CATEGORIA,
     COUNT(*)                        AS total_ventas,
     SUM(CANTIDAD)                   AS unidades_vendidas,
-    SUM(MONTO_TOTAL)                AS ingreso_total,
-    ROUND(AVG(MONTO_TOTAL), 2)      AS ticket_promedio,
-    MIN(MONTO_TOTAL)                AS venta_minima,
-    MAX(MONTO_TOTAL)                AS venta_maxima
+    SUM(TOTAL_VENTA)                AS ingreso_total,
+    ROUND(AVG(TOTAL_VENTA), 2)      AS ticket_promedio,
+    MIN(TOTAL_VENTA)                AS venta_minima,
+    MAX(TOTAL_VENTA)                AS venta_maxima
 FROM VENTAS
 GROUP BY CATEGORIA
 HAVING COUNT(*) >= 20               -- Solo categorías con al menos 20 ventas
@@ -629,12 +627,12 @@ SELECT
     CATEGORIA,
     COUNT(*)                        AS total_ventas,
     SUM(CANTIDAD)                   AS unidades_vendidas,
-    ROUND(SUM(MONTO_TOTAL), 2)      AS ingreso_total,
-    ROUND(AVG(MONTO_TOTAL), 2)      AS ticket_promedio,
-    ROUND(MIN(MONTO_TOTAL), 2)      AS venta_minima,
-    ROUND(MAX(MONTO_TOTAL), 2)      AS venta_maxima
+    ROUND(SUM(TOTAL_VENTA), 2)      AS ingreso_total,
+    ROUND(AVG(TOTAL_VENTA), 2)      AS ticket_promedio,
+    ROUND(MIN(TOTAL_VENTA), 2)      AS venta_minima,
+    ROUND(MAX(TOTAL_VENTA), 2)      AS venta_maxima
 FROM VENTAS
-WHERE FECHA_VENTA >= DATEADD('year', -1, CURRENT_DATE())  -- Último año
+WHERE FECHA_VENTA >= DATEADD('year', -2, CURRENT_DATE())  -- Último año
 GROUP BY CATEGORIA
 HAVING COUNT(*) >= 20               -- Solo categorías con actividad significativa
 ORDER BY ingreso_total DESC;        -- Ranking por ingreso total
@@ -650,13 +648,13 @@ SELECT
     CATEGORIA,
     COUNT(*)                                AS total_ventas,
     SUM(CANTIDAD)                           AS unidades_vendidas,
-    ROUND(SUM(MONTO_TOTAL), 2)              AS ingreso_total,
-    ROUND(AVG(MONTO_TOTAL), 2)              AS ticket_promedio,
-    ROUND(MAX(MONTO_TOTAL)
-        - MIN(MONTO_TOTAL), 2)              AS rango_precio,
-    ROUND(MAX(MONTO_TOTAL), 2)              AS venta_maxima
+    ROUND(SUM(TOTAL_VENTA), 2)              AS ingreso_total,
+    ROUND(AVG(TOTAL_VENTA), 2)              AS ticket_promedio,
+    ROUND(MAX(TOTAL_VENTA)
+        - MIN(TOTAL_VENTA), 2)              AS rango_precio,
+    ROUND(MAX(TOTAL_VENTA), 2)              AS venta_maxima
 FROM VENTAS
-WHERE FECHA_VENTA >= DATEADD('year', -1, CURRENT_DATE())
+WHERE FECHA_VENTA >= DATEADD('year', -2, CURRENT_DATE())
 GROUP BY CATEGORIA
 HAVING COUNT(*) >= 20
 ORDER BY ingreso_total DESC;
@@ -700,11 +698,11 @@ Ejemplo ilustrativo del resultado:
 SELECT
     REGION,
     COUNT(*)                        AS total_ventas,
-    ROUND(SUM(MONTO_TOTAL), 2)      AS ingreso_total,
-    ROUND(AVG(MONTO_TOTAL), 2)      AS ticket_promedio,
-    ROUND(MAX(MONTO_TOTAL), 2)      AS venta_maxima
+    ROUND(SUM(TOTAL_VENTA), 2)      AS ingreso_total,
+    ROUND(AVG(TOTAL_VENTA), 2)      AS ticket_promedio,
+    ROUND(MAX(TOTAL_VENTA), 2)      AS venta_maxima
 FROM VENTAS
-WHERE FECHA_VENTA >= DATEADD('year', -1, CURRENT_DATE())
+WHERE FECHA_VENTA >= DATEADD('year', -2, CURRENT_DATE())
 GROUP BY REGION
 HAVING COUNT(*) > 50
 ORDER BY ticket_promedio DESC;
@@ -718,11 +716,11 @@ SELECT
     REGION,
     VENDEDOR,
     COUNT(*)                        AS total_ventas,
-    ROUND(SUM(MONTO_TOTAL), 2)      AS ingreso_total
+    ROUND(SUM(TOTAL_VENTA), 2)      AS ingreso_total
 FROM VENTAS
-WHERE MONTO_TOTAL > 50              -- WHERE filtra filas individuales (ventas > $50)
+WHERE TOTAL_VENTA > 50              -- WHERE filtra filas individuales (ventas > $50)
 GROUP BY REGION, VENDEDOR
-HAVING SUM(MONTO_TOTAL) > 5000      -- HAVING filtra grupos (ingreso acumulado > $5,000)
+HAVING SUM(TOTAL_VENTA) > 5000      -- HAVING filtra grupos (ingreso acumulado > $5,000)
 ORDER BY REGION ASC, ingreso_total DESC;
 ```
 
@@ -755,10 +753,10 @@ Ejecuta las siguientes consultas de validación para confirmar que todos los eje
 -- Resultado esperado: ambas columnas deben tener el mismo valor
 
 SELECT
-    (SELECT ROUND(SUM(MONTO_TOTAL), 2) FROM VENTAS)                 AS total_tabla_completa,
+    (SELECT ROUND(SUM(TOTAL_VENTA), 2) FROM VENTAS)                 AS total_tabla_completa,
     (SELECT ROUND(SUM(ingreso_cat), 2)
      FROM (
-         SELECT SUM(MONTO_TOTAL) AS ingreso_cat
+         SELECT SUM(TOTAL_VENTA) AS ingreso_cat
          FROM VENTAS
          GROUP BY CATEGORIA
      ))                                                              AS suma_de_grupos;
@@ -859,10 +857,11 @@ Primero, ejecuta la consulta **sin `HAVING`** para ver los valores reales de la 
 SELECT
     CATEGORIA,
     COUNT(*)            AS total_ventas,
-    SUM(MONTO_TOTAL)    AS ingreso_total
+    SUM(TOTAL_VENTA)    AS ingreso_total
 FROM VENTAS
--- WHERE FECHA_VENTA >= DATEADD('year', -1, CURRENT_DATE())  -- Comenta el WHERE si aplica
+WHERE FECHA_VENTA >= DATEADD('year', -1, CURRENT_DATE())
 GROUP BY CATEGORIA
+-- Coloca aquí el HAVING
 ORDER BY total_ventas DESC;
 ```
 
