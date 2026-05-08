@@ -74,7 +74,7 @@ Al finalizar este laboratorio, serás capaz de:
 
 ---
 
-## Paso 0 — Crear y poblar el dataset **VENTAS** en `CURSO_SQL`
+## Paso 0 — Crear y poblar el dataset **EMPLEADOS** en `CURSO_SQL`
 
 **Objetivo:** Preparar el entorno de trabajo creando las tablas requeridas para el laboratorio.
 
