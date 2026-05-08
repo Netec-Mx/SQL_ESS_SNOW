@@ -99,7 +99,7 @@ Antes de iniciar los pasos del laboratorio, debes ejecutar el siguiente script. 
 3. Crea un nuevo private workspace.
 4. Nombralo como **`Setup_CURSO_SQLSNOW`**.
 5. Da clic en **Add new** y crea un nuevo archivo tipo **SQL**
-6. Escribe el siguiente nombre del archivo: **`Setup_Lab01.sql`**
+6. Escribe el siguiente nombre del archivo: **`Setup_Lab01_CLI-PROD`**
 8. A la derecha selecciona el warehouse **`COMPUTE_WH`** o el warehouse asignado/creado al inicio de la creación de la cuenta.
 9. Copia/Pega y ejecuta el siguiente script completo.
 
@@ -388,7 +388,7 @@ Resultado esperado:
 
 Antes de comenzar los ejercicios, debes verificar que tu entorno Snowflake está correctamente configurado. Sigue estos pasos de setup una sola vez al inicio de la sesión.
 
-**Paso de configuración — Abrir un Worksheet y seleccionar el contexto correcto:**
+**Paso de configuración — Abrir un Workspaces y seleccionar el contexto correcto:**
 
 1. Haz clic en el botón **＋** (esquina superior derecha) para crear un nuevo Private Workspace.
 2. Escribe el siguiente nombre: **`SnowEssLabs`**
