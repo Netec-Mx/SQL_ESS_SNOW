@@ -69,9 +69,23 @@ Al completar este laboratorio, serás capaz de:
 
 > **Recomendación:** Usa Chrome sin extensiones adicionales si experimentas problemas con la interfaz Snowsight. Asegúrate de tener JavaScript habilitado.
 
-### Configuración Inicial del Entorno
+---
 
-Antes de comenzar los ejercicios, ejecuta los siguientes comandos en una nueva worksheet de Snowsight para establecer el contexto de trabajo correcto. Este paso es obligatorio.
+## Paso 0 — Crear y poblar el dataset **VENTAS** en `CURSO_SQL`
+
+**Objetivo:** Preparar el entorno de trabajo creando las tablas requeridas para el laboratorio.
+
+### Instrucciones
+
+1. Inicia sesión en tu cuenta Snowflake en [app.snowflake.com](https://app.snowflake.com).
+2. En el menú lateral izquierdo, haz clic en **Projects → Workspaces**.
+3. Selecciona el Workspace llamado **`Setup_CURSO_SQLSNOW`**.
+5. Da clic en **Add new** y crea un nuevo archivo tipo **SQL**
+6. Escribe el siguiente nombre del archivo: **`Setup_Lab02_Ventas.sql`**
+7. A la derecha selecciona el warehouse **`COMPUTE_WH`** o el warehouse asignado/creado al inicio de la creación de la cuenta.
+8. Copia/Pega y ejecuta el siguiente script completo.
+
+> **Nota:** En Snowsight puedes ejecutar todo el bloque completo. Si tu cuenta no permite crear bases de datos, ejecuta el script hasta donde tus permisos lo permitan o solicita apoyo del instructor.
 
 ```sql
 -- ============================================================
