@@ -83,7 +83,7 @@ USE SCHEMA PUBLIC;
 
 -- 3. Activar el Virtual Warehouse
 --    Reemplaza NOMBRE_WH por el nombre de tu warehouse (ej. COMPUTE_WH)
-USE WAREHOUSE NOMBRE_WH;
+USE WAREHOUSE COMPUTE_WH;
 
 -- 4. Verificar el contexto activo
 SELECT CURRENT_DATABASE(), CURRENT_SCHEMA(), CURRENT_WAREHOUSE();
@@ -736,7 +736,7 @@ Ejecuta el siguiente comando para suspender el warehouse inmediatamente y detene
 ```sql
 -- Suspender el Virtual Warehouse al finalizar
 -- Reemplaza NOMBRE_WH por el nombre de tu warehouse
-ALTER WAREHOUSE NOMBRE_WH SUSPEND;
+ALTER WAREHOUSE COMPUTE_WH SUSPEND;
 ```
 
 Alternativamente, en Snowsight ve a **Admin → Warehouses**, localiza tu warehouse y haz clic en **Suspend**.
