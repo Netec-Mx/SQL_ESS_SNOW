@@ -116,6 +116,7 @@ La práctica utiliza las tablas `CLIENTES` y `VENTAS`. Si ya ejecutaste el scrip
 -- Schema: PUBLIC
 -- Requisito: La tabla CLIENTES debe existir previamente
 -- Registros generados: 1,200 ventas
+-- Ajuste: Se agrega columna VENDEDOR
 -- ============================================================
 
 USE DATABASE CURSO_SQL;
@@ -137,7 +138,8 @@ CREATE OR REPLACE TABLE VENTAS (
     TOTAL_VENTA NUMBER(10,2),
     FECHA_VENTA DATE,
     REGION VARCHAR,
-    ESTADO_ENVIO VARCHAR
+    ESTADO_ENVIO VARCHAR,
+    VENDEDOR VARCHAR
 );
 
 -- Insertar 1,200 registros sintéticos de ventas
@@ -152,7 +154,8 @@ INSERT INTO VENTAS (
     TOTAL_VENTA,
     FECHA_VENTA,
     REGION,
-    ESTADO_ENVIO
+    ESTADO_ENVIO,
+    VENDEDOR
 )
 WITH clientes_ordenados AS (
     SELECT
@@ -236,7 +239,19 @@ ventas_base AS (
             WHEN MOD(b.n, 4) = 1 THEN 'Enviado'
             WHEN MOD(b.n, 4) = 2 THEN 'Entregado'
             ELSE 'Cancelado'
-        END AS ESTADO_ENVIO
+        END AS ESTADO_ENVIO,
+        CASE MOD(b.n, 10)
+            WHEN 0 THEN 'Laura Méndez'
+            WHEN 1 THEN 'Roberto Salazar'
+            WHEN 2 THEN 'Patricia Núñez'
+            WHEN 3 THEN 'Fernando Rojas'
+            WHEN 4 THEN 'Gabriela Silva'
+            WHEN 5 THEN 'Héctor Molina'
+            WHEN 6 THEN 'Natalia Reyes'
+            WHEN 7 THEN 'Oscar Cabrera'
+            WHEN 8 THEN 'Diana Paredes'
+            ELSE 'Manuel Ortega'
+        END AS VENDEDOR
     FROM base b
     CROSS JOIN total_clientes tc
     JOIN clientes_ordenados c
@@ -252,7 +267,8 @@ SELECT
     CANTIDAD * PRECIO_UNITARIO AS TOTAL_VENTA,
     FECHA_VENTA,
     REGION,
-    ESTADO_ENVIO
+    ESTADO_ENVIO,
+    VENDEDOR
 FROM ventas_base;
 
 -- Validación general de carga
@@ -267,6 +283,10 @@ ORDER BY REGION;
 SELECT DISTINCT CATEGORIA
 FROM VENTAS
 ORDER BY CATEGORIA;
+
+SELECT DISTINCT VENDEDOR
+FROM VENTAS
+ORDER BY VENDEDOR;
 
 SELECT
     COUNT(*) AS ventas_sin_estado_envio
