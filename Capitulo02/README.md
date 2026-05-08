@@ -74,49 +74,18 @@ Al completar este laboratorio, serás capaz de:
 Antes de comenzar los ejercicios, ejecuta los siguientes comandos en una nueva worksheet de Snowsight para establecer el contexto de trabajo correcto. Este paso es obligatorio.
 
 ```sql
--- Paso 1: Seleccionar la base de datos del curso
-USE DATABASE CURSO_SQL;
-
--- Paso 2: Seleccionar el schema correspondiente
--- En entornos compartidos, reemplaza PUBLIC por tu schema asignado (ej. ESTUDIANTE_01)
-USE SCHEMA PUBLIC;
-
--- Paso 3: Activar el Virtual Warehouse
--- Reemplaza NOMBRE_WH por el nombre de tu warehouse (ej. COMPUTE_WH)
-USE WAREHOUSE COMPUTE_WH;
-
--- Paso 4: Verificar que las tablas del curso estén disponibles
-SHOW TABLES;
-```
-
-**Resultado esperado del paso 4:** Debes ver en la lista al menos las tablas `VENTAS` y `CLIENTES`. Si `CLIENTES` existe pero `VENTAS` no aparece, ejecuta la sección **Preparación Obligatoria: Crear y Cargar la Tabla `VENTAS`** antes de continuar. Si tampoco aparece `CLIENTES`, detente y consulta al instructor antes de continuar.
-
----
-
-### Preparación Obligatoria: Crear y Cargar la Tabla `VENTAS`
-
-La práctica utiliza las tablas `CLIENTES` y `VENTAS`. Si ya ejecutaste el script de inicialización del Lab 01, la tabla `CLIENTES` debe existir. Sin embargo, para este laboratorio también necesitas la tabla `VENTAS`. Ejecuta el siguiente script **antes de iniciar el Paso 1** si `VENTAS` no aparece al ejecutar `SHOW TABLES`.
-
-> **Importante:** Este script crea nuevamente la tabla `VENTAS`. Si ya tenías datos de ventas en el schema actual, serán reemplazados. En un entorno compartido, confirma que estás usando tu schema asignado antes de ejecutarlo.
-
-#### Pasos para Ejecutar el Script
-
-1. En Snowsight, abre el workspace **Setup_CURSO_SQLSNOW**.
-2. Crea una nueva archivo tipo SQL llamada **`Setup_Lab02_Ventas`**.
-3. Verifica que estés usando el warehouse correcto, por ejemplo **`COMPUTE_WH`**.
-4. Copia y pega el siguiente script
-5. Ejecuta el script completo.
-
-#### Script de Inicialización de `VENTAS`
-
-```sql
 -- ============================================================
 -- LAB 02 - Script de inicialización de datos para tabla VENTAS
 -- Base de datos: CURSO_SQL
 -- Schema: PUBLIC
--- Requisito: La tabla CLIENTES debe existir previamente
+-- Requisitos:
+--   1. La tabla CLIENTES debe existir previamente
+--   2. La tabla PRODUCTOS debe existir previamente
 -- Registros generados: 1,200 ventas
--- Ajuste: Se agrega columna VENDEDOR
+-- Ajuste aplicado:
+--   - Se agrega ID_PRODUCTO a VENTAS
+--   - PRODUCTO, CATEGORIA y PRECIO_UNITARIO se toman desde PRODUCTOS
+--   - Esto permite que los JOIN con PRODUCTOS coincidan correctamente
 -- ============================================================
 
 USE DATABASE CURSO_SQL;
@@ -127,10 +96,15 @@ USE WAREHOUSE COMPUTE_WH;
 SELECT COUNT(*) AS total_clientes
 FROM CLIENTES;
 
--- Crear la tabla VENTAS con la estructura requerida por la práctica
+-- Verificación previa: confirmar que PRODUCTOS existe y tiene datos
+SELECT COUNT(*) AS total_productos
+FROM PRODUCTOS;
+
+-- Crear la tabla VENTAS con la estructura requerida para laboratorios de filtrado y JOIN
 CREATE OR REPLACE TABLE VENTAS (
     ID_VENTA NUMBER,
     ID_CLIENTE NUMBER,
+    ID_PRODUCTO NUMBER,
     PRODUCTO VARCHAR,
     CATEGORIA VARCHAR,
     CANTIDAD NUMBER,
@@ -143,10 +117,13 @@ CREATE OR REPLACE TABLE VENTAS (
 );
 
 -- Insertar 1,200 registros sintéticos de ventas
--- Los ID_CLIENTE se toman desde la tabla CLIENTES para mantener coherencia con el dataset
+-- Los ID_CLIENTE se toman desde CLIENTES
+-- Los ID_PRODUCTO, PRODUCTO, CATEGORIA y PRECIO_UNITARIO se toman desde PRODUCTOS
+-- para que los JOIN con PRODUCTOS sean consistentes.
 INSERT INTO VENTAS (
     ID_VENTA,
     ID_CLIENTE,
+    ID_PRODUCTO,
     PRODUCTO,
     CATEGORIA,
     CANTIDAD,
@@ -167,6 +144,19 @@ total_clientes AS (
     SELECT COUNT(*) AS total
     FROM clientes_ordenados
 ),
+productos_ordenados AS (
+    SELECT
+        ID_PRODUCTO,
+        NOMBRE_PRODUCTO,
+        CATEGORIA,
+        PRECIO,
+        ROW_NUMBER() OVER (ORDER BY ID_PRODUCTO) AS rn
+    FROM PRODUCTOS
+),
+total_productos AS (
+    SELECT COUNT(*) AS total
+    FROM productos_ordenados
+),
 base AS (
     SELECT
         ROW_NUMBER() OVER (ORDER BY SEQ4()) AS n
@@ -176,55 +166,11 @@ ventas_base AS (
     SELECT
         b.n AS ID_VENTA,
         c.ID_CLIENTE,
-        CASE MOD(b.n, 6)
-            WHEN 0 THEN 'Electrónica'
-            WHEN 1 THEN 'Ropa'
-            WHEN 2 THEN 'Hogar'
-            WHEN 3 THEN 'Oficina'
-            WHEN 4 THEN 'Deportes'
-            ELSE 'Alimentos'
-        END AS CATEGORIA,
-        CASE MOD(b.n, 18)
-            WHEN 0 THEN 'Laptop Pro 14'
-            WHEN 1 THEN 'Mouse Basic'
-            WHEN 2 THEN 'Teclado Pro Mecánico'
-            WHEN 3 THEN 'Monitor Pro 27'
-            WHEN 4 THEN 'Camisa Casual'
-            WHEN 5 THEN 'Pantalón Ejecutivo'
-            WHEN 6 THEN 'Silla Ergonómica Pro'
-            WHEN 7 THEN 'Escritorio Basic'
-            WHEN 8 THEN 'Cafetera Hogar'
-            WHEN 9 THEN 'Lámpara LED Pro'
-            WHEN 10 THEN 'Mochila Deportiva'
-            WHEN 11 THEN 'Tenis Running Pro'
-            WHEN 12 THEN 'Audífonos Basic'
-            WHEN 13 THEN 'Tablet Pro 11'
-            WHEN 14 THEN 'Agenda Oficina'
-            WHEN 15 THEN 'Botella Térmica'
-            WHEN 16 THEN 'Kit Cocina Basic'
-            ELSE 'Smartwatch Pro'
-        END AS PRODUCTO,
+        p.ID_PRODUCTO,
+        p.NOMBRE_PRODUCTO AS PRODUCTO,
+        p.CATEGORIA,
         MOD(b.n, 5) + 1 AS CANTIDAD,
-        CASE MOD(b.n, 18)
-            WHEN 0 THEN 18500.00
-            WHEN 1 THEN 280.00
-            WHEN 2 THEN 1450.00
-            WHEN 3 THEN 7200.00
-            WHEN 4 THEN 420.00
-            WHEN 5 THEN 680.00
-            WHEN 6 THEN 5600.00
-            WHEN 7 THEN 2300.00
-            WHEN 8 THEN 1350.00
-            WHEN 9 THEN 890.00
-            WHEN 10 THEN 760.00
-            WHEN 11 THEN 2100.00
-            WHEN 12 THEN 350.00
-            WHEN 13 THEN 9800.00
-            WHEN 14 THEN 95.00
-            WHEN 15 THEN 180.00
-            WHEN 16 THEN 520.00
-            ELSE 4300.00
-        END AS PRECIO_UNITARIO,
+        p.PRECIO AS PRECIO_UNITARIO,
         DATEADD(DAY, MOD(b.n * 3, 1095), DATE '2022-01-01') AS FECHA_VENTA,
         CASE MOD(b.n, 5)
             WHEN 0 THEN 'Norte'
@@ -254,17 +200,21 @@ ventas_base AS (
         END AS VENDEDOR
     FROM base b
     CROSS JOIN total_clientes tc
+    CROSS JOIN total_productos tp
     JOIN clientes_ordenados c
       ON c.rn = MOD(b.n - 1, tc.total) + 1
+    JOIN productos_ordenados p
+      ON p.rn = MOD(b.n - 1, tp.total) + 1
 )
 SELECT
     ID_VENTA,
     ID_CLIENTE,
+    ID_PRODUCTO,
     PRODUCTO,
     CATEGORIA,
     CANTIDAD,
     PRECIO_UNITARIO,
-    CANTIDAD * PRECIO_UNITARIO AS TOTAL_VENTA,
+    CAST(CANTIDAD * PRECIO_UNITARIO AS NUMBER(10,2)) AS TOTAL_VENTA,
     FECHA_VENTA,
     REGION,
     ESTADO_ENVIO,
@@ -274,6 +224,24 @@ FROM ventas_base;
 -- Validación general de carga
 SELECT COUNT(*) AS total_ventas
 FROM VENTAS;
+
+-- Validación de relación VENTAS -> PRODUCTOS
+-- Debe devolver 0. Si devuelve más de 0, existen ventas con productos inexistentes.
+SELECT COUNT(*) AS ventas_sin_producto_relacionado
+FROM VENTAS V
+LEFT JOIN PRODUCTOS P
+    ON V.ID_PRODUCTO = P.ID_PRODUCTO
+WHERE P.ID_PRODUCTO IS NULL;
+
+-- Validación de coincidencia entre VENTAS y PRODUCTOS
+-- Debe devolver 0. Si devuelve más de 0, hay diferencias entre el producto/categoría/precio de VENTAS y PRODUCTOS.
+SELECT COUNT(*) AS ventas_con_datos_de_producto_diferentes
+FROM VENTAS V
+JOIN PRODUCTOS P
+    ON V.ID_PRODUCTO = P.ID_PRODUCTO
+WHERE V.PRODUCTO <> P.NOMBRE_PRODUCTO
+   OR V.CATEGORIA <> P.CATEGORIA
+   OR V.PRECIO_UNITARIO <> P.PRECIO;
 
 -- Validación de valores necesarios para la práctica
 SELECT DISTINCT REGION
