@@ -108,8 +108,9 @@ Antes de iniciar los pasos del laboratorio, debes ejecutar el siguiente script. 
 ```sql
 -- ============================================================
 -- Script de inicialización del dataset CURSO_SQL
--- Versión: 1.1
+-- Versión: 1.2
 -- Uso: Ejecutar una sola vez antes del Lab 01
+-- Ajuste: CLIENTES separa NOMBRE y APELLIDO en columnas distintas
 -- ============================================================
 
 -- 1. Seleccionar warehouse de trabajo
@@ -138,7 +139,8 @@ CREATE OR REPLACE TABLE CURSO_SQL.PUBLIC.PRODUCTOS (
 
 CREATE OR REPLACE TABLE CURSO_SQL.PUBLIC.CLIENTES (
     ID_CLIENTE       NUMBER(38,0) NOT NULL,
-    NOMBRE           VARCHAR(150),
+    NOMBRE           VARCHAR(100),
+    APELLIDO         VARCHAR(100),
     EMAIL            VARCHAR(200),
     PAIS             VARCHAR(80),
     CIUDAD           VARCHAR(100),
@@ -210,6 +212,7 @@ FROM productos;
 INSERT INTO CURSO_SQL.PUBLIC.CLIENTES (
     ID_CLIENTE,
     NOMBRE,
+    APELLIDO,
     EMAIL,
     PAIS,
     CIUDAD,
@@ -224,19 +227,33 @@ WITH base AS (
     SELECT
         ID_CLIENTE,
         CASE MOD(ID_CLIENTE, 12)
-            WHEN 0 THEN 'Ana Martínez'
-            WHEN 1 THEN 'Carlos Gómez'
-            WHEN 2 THEN 'Lucía Fernández'
-            WHEN 3 THEN 'Jorge Ramírez'
-            WHEN 4 THEN 'María Torres'
-            WHEN 5 THEN 'Andrés López'
-            WHEN 6 THEN 'Sofía Castillo'
-            WHEN 7 THEN 'Daniel Hernández'
-            WHEN 8 THEN 'Valeria Morales'
-            WHEN 9 THEN 'Miguel Sánchez'
-            WHEN 10 THEN 'Camila Vargas'
-            ELSE 'Ricardo Flores'
+            WHEN 0 THEN 'Ana'
+            WHEN 1 THEN 'Carlos'
+            WHEN 2 THEN 'Lucía'
+            WHEN 3 THEN 'Jorge'
+            WHEN 4 THEN 'María'
+            WHEN 5 THEN 'Andrés'
+            WHEN 6 THEN 'Sofía'
+            WHEN 7 THEN 'Daniel'
+            WHEN 8 THEN 'Valeria'
+            WHEN 9 THEN 'Miguel'
+            WHEN 10 THEN 'Camila'
+            ELSE 'Ricardo'
         END AS NOMBRE_BASE,
+        CASE MOD(ID_CLIENTE, 12)
+            WHEN 0 THEN 'Martínez'
+            WHEN 1 THEN 'Gómez'
+            WHEN 2 THEN 'Fernández'
+            WHEN 3 THEN 'Ramírez'
+            WHEN 4 THEN 'Torres'
+            WHEN 5 THEN 'López'
+            WHEN 6 THEN 'Castillo'
+            WHEN 7 THEN 'Hernández'
+            WHEN 8 THEN 'Morales'
+            WHEN 9 THEN 'Sánchez'
+            WHEN 10 THEN 'Vargas'
+            ELSE 'Flores'
+        END AS APELLIDO_BASE,
         CASE MOD(ID_CLIENTE, 8)
             WHEN 0 THEN 'México'
             WHEN 1 THEN 'Colombia'
@@ -259,27 +276,79 @@ WITH base AS (
         END AS CIUDAD,
         CASE MOD(ID_CLIENTE, 4)
             WHEN 0 THEN 'Corporativo'
-            WHEN 1 THEN 'PyME'
+            WHEN 1 THEN 'Retail'
             WHEN 2 THEN 'Gobierno'
-            ELSE 'Educación'
+            ELSE 'PyME'
         END AS SEGMENTO
     FROM base
 )
 SELECT
     ID_CLIENTE,
-    NOMBRE_BASE || ' ' || LPAD(ID_CLIENTE, 3, '0') AS NOMBRE,
-    LOWER(REPLACE(NOMBRE_BASE, ' ', '.')) || LPAD(ID_CLIENTE, 3, '0') || '@example.com' AS CORREO,
+    NOMBRE_BASE AS NOMBRE,
+    APELLIDO_BASE || ' ' || LPAD(ID_CLIENTE, 3, '0') AS APELLIDO,
+    LOWER(
+        TRANSLATE(NOMBRE_BASE, 'ÁÉÍÓÚáéíóúÑñ', 'AEIOUaeiouNn')
+    )
+    || '.' ||
+    LOWER(
+        TRANSLATE(APELLIDO_BASE, 'ÁÉÍÓÚáéíóúÑñ', 'AEIOUaeiouNn')
+    )
+    || LPAD(ID_CLIENTE, 3, '0') ||
+    CASE MOD(ID_CLIENTE, 5)
+        WHEN 0 THEN '@gmail.com'
+        WHEN 1 THEN '@outlook.com'
+        WHEN 2 THEN '@empresa.com'
+        WHEN 3 THEN '@example.com'
+        ELSE '@correo.com'
+    END AS EMAIL,
     PAIS,
     CIUDAD,
     SEGMENTO,
     DATEADD(DAY, -MOD(ID_CLIENTE * 5, 1095), CURRENT_DATE()) AS FECHA_REGISTRO,
-    '+52' || LPAD(MOD(ID_CLIENTE * 31, 9000000000) + 1000000000, 10, '0') AS TELEFONO
+    CASE
+        WHEN MOD(ID_CLIENTE, 7) = 0 THEN NULL
+        ELSE '+52' || LPAD(MOD(ID_CLIENTE * 31, 9000000000) + 1000000000, 10, '0')
+    END AS TELEFONO
 FROM clientes;
 
 -- 6. Validar que el dataset quedó creado correctamente
 SELECT 'PRODUCTOS' AS TABLA, COUNT(*) AS TOTAL_REGISTROS FROM CURSO_SQL.PUBLIC.PRODUCTOS
 UNION ALL
 SELECT 'CLIENTES' AS TABLA, COUNT(*) AS TOTAL_REGISTROS FROM CURSO_SQL.PUBLIC.CLIENTES;
+
+-- 7. Validar estructura y muestra de CLIENTES
+DESCRIBE TABLE CURSO_SQL.PUBLIC.CLIENTES;
+
+SELECT
+    ID_CLIENTE,
+    NOMBRE,
+    APELLIDO,
+    EMAIL,
+    PAIS,
+    CIUDAD,
+    SEGMENTO,
+    FECHA_REGISTRO,
+    TELEFONO
+FROM CURSO_SQL.PUBLIC.CLIENTES
+ORDER BY ID_CLIENTE
+LIMIT 10;
+
+-- 8. Validaciones útiles para laboratorios de filtrado
+SELECT SEGMENTO, COUNT(*) AS TOTAL_CLIENTES
+FROM CURSO_SQL.PUBLIC.CLIENTES
+GROUP BY SEGMENTO
+ORDER BY SEGMENTO;
+
+SELECT PAIS, COUNT(*) AS TOTAL_CLIENTES
+FROM CURSO_SQL.PUBLIC.CLIENTES
+GROUP BY PAIS
+ORDER BY PAIS;
+
+SELECT
+    COUNT(*) AS TOTAL_CLIENTES,
+    COUNT(CASE WHEN TELEFONO IS NULL THEN 1 END) AS CLIENTES_SIN_TELEFONO,
+    COUNT(CASE WHEN TELEFONO IS NOT NULL THEN 1 END) AS CLIENTES_CON_TELEFONO
+FROM CURSO_SQL.PUBLIC.CLIENTES;
 ```
 
 ### Resultado esperado del script
