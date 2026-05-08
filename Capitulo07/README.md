@@ -72,9 +72,322 @@ Al finalizar este laboratorio, serás capaz de:
 | Navegador web         | Chrome 90+, Firefox 88+, Edge 90+, Safari 14+ |
 | Dataset del curso     | `CURSO_SQL` v1.0 (provisto por el instructor)  |
 
+---
+
+## Paso 0 — Crear y poblar el dataset **VENTAS** en `CURSO_SQL`
+
+**Objetivo:** Preparar el entorno de trabajo creando las tablas requeridas para el laboratorio.
+
+### Instrucciones
+
+1. Inicia sesión en tu cuenta Snowflake en [app.snowflake.com](https://app.snowflake.com).
+2. En el menú lateral izquierdo, haz clic en **Projects → Workspaces**.
+3. Selecciona el Workspace llamado **`Setup_CURSO_SQLSNOW`**.
+4.  Da clic en **Add new** y crea un nuevo archivo tipo **SQL**
+5. Escribe el siguiente nombre del archivo: **`Setup_Lab03_Empleados.sql`**
+6. A la derecha selecciona el warehouse **`COMPUTE_WH`** o el warehouse asignado/creado al inicio de la creación de la cuenta.
+7. Copia/Pega y ejecuta el siguiente script completo.
+
+> **Nota:** En Snowsight puedes ejecutar todo el bloque completo. Si tu cuenta no permite crear bases de datos, ejecuta el script hasta donde tus permisos lo permitan o solicita apoyo del instructor.
+
+```sql
+-- ============================================================
+-- Script de inicialización de datos para tabla EMPLEADOS
+-- Base de datos: CURSO_SQL
+-- Schema: PUBLIC
+-- Uso: Ejecutar antes de recrear/cargar la tabla VENTAS
+-- Registros generados: 20 empleados
+-- ============================================================
+
+USE DATABASE CURSO_SQL;
+USE SCHEMA PUBLIC;
+USE WAREHOUSE COMPUTE_WH;
+
+-- Crear la tabla EMPLEADOS requerida para relacionar ventas con empleados
+CREATE OR REPLACE TABLE EMPLEADOS (
+    EMPLEADO_ID     NUMBER(38,0) NOT NULL,
+    NOMBRE_EMPLEADO VARCHAR(150),
+    REGION          VARCHAR(50),
+    CARGO           VARCHAR(100),
+    CONSTRAINT PK_EMPLEADOS PRIMARY KEY (EMPLEADO_ID)
+);
+
+-- Insertar empleados de ejemplo
+INSERT INTO EMPLEADOS (
+    EMPLEADO_ID,
+    NOMBRE_EMPLEADO,
+    REGION,
+    CARGO
+)
+SELECT * FROM VALUES
+    (1,  'Laura Méndez',      'Norte',     'Ejecutivo de Ventas'),
+    (2,  'Roberto Salazar',   'Sur',       'Ejecutivo de Ventas'),
+    (3,  'Patricia Núñez',    'Centro',    'Ejecutivo de Ventas'),
+    (4,  'Fernando Rojas',    'Occidente', 'Ejecutivo de Ventas'),
+    (5,  'Gabriela Silva',    'Oriente',   'Ejecutivo de Ventas'),
+    (6,  'Héctor Molina',     'Norte',     'Gerente Regional'),
+    (7,  'Natalia Reyes',     'Sur',       'Gerente Regional'),
+    (8,  'Oscar Cabrera',     'Centro',    'Gerente Regional'),
+    (9,  'Diana Paredes',     'Occidente', 'Gerente Regional'),
+    (10, 'Manuel Ortega',     'Oriente',   'Gerente Regional'),
+    (11, 'Claudia Benítez',   'Norte',     'Asesor Comercial'),
+    (12, 'Raúl Herrera',      'Sur',       'Asesor Comercial'),
+    (13, 'Mónica Fuentes',    'Centro',    'Asesor Comercial'),
+    (14, 'Iván Cárdenas',     'Occidente', 'Asesor Comercial'),
+    (15, 'Elena Márquez',     'Oriente',   'Asesor Comercial'),
+    (16, 'Sergio Pineda',     'Norte',     'Supervisor de Ventas'),
+    (17, 'Adriana Solís',     'Sur',       'Supervisor de Ventas'),
+    (18, 'Tomás Aguilar',     'Centro',    'Supervisor de Ventas'),
+    (19, 'Verónica Ramos',    'Occidente', 'Supervisor de Ventas'),
+    (20, 'Luis Del Valle',    'Oriente',   'Supervisor de Ventas')
+AS T(EMPLEADO_ID, NOMBRE_EMPLEADO, REGION, CARGO);
+
+-- Validación general
+SELECT COUNT(*) AS total_empleados
+FROM EMPLEADOS;
+
+SELECT *
+FROM EMPLEADOS
+ORDER BY EMPLEADO_ID;
+```
+
+8. Ahora selecciona el script llamado **Setup_Lab02_Ventas.sql** borra el contenido del archivo.
+9. Copia y pega el siguiente contenido para actualizar la realción **Ventas/Empleados**
+10. Selecciona todo el contenido y ejecutalo.
+
+```sql
+-- ============================================================
+-- LAB 02 - Script de inicialización de datos para tabla VENTAS
+-- Base de datos: CURSO_SQL
+-- Schema: PUBLIC
+-- Requisitos:
+--   1. La tabla CLIENTES debe existir previamente
+--   2. La tabla PRODUCTOS debe existir previamente
+--   3. La tabla EMPLEADOS debe existir previamente
+-- Registros generados: 1,200 ventas
+-- Ajuste aplicado:
+--   - Se agrega EMPLEADO_ID para permitir JOIN con EMPLEADOS
+--   - Se mantiene ID_PRODUCTO para permitir JOIN con PRODUCTOS
+--   - PRODUCTO, CATEGORIA y PRECIO_UNITARIO se toman desde PRODUCTOS
+-- ============================================================
+
+USE DATABASE CURSO_SQL;
+USE SCHEMA PUBLIC;
+USE WAREHOUSE COMPUTE_WH;
+
+-- Verificación previa: confirmar que las tablas requeridas existen y tienen datos
+SELECT COUNT(*) AS total_clientes
+FROM CLIENTES;
+
+SELECT COUNT(*) AS total_productos
+FROM PRODUCTOS;
+
+SELECT COUNT(*) AS total_empleados
+FROM EMPLEADOS;
+
+-- Crear la tabla VENTAS con las columnas necesarias para los JOINs
+CREATE OR REPLACE TABLE VENTAS (
+    ID_VENTA        NUMBER(38,0) NOT NULL,
+    ID_CLIENTE      NUMBER(38,0),
+    ID_PRODUCTO     NUMBER(38,0),
+    EMPLEADO_ID     NUMBER(38,0),
+    PRODUCTO        VARCHAR(200),
+    CATEGORIA       VARCHAR(100),
+    CANTIDAD        NUMBER(38,0),
+    PRECIO_UNITARIO NUMBER(10,2),
+    TOTAL_VENTA     NUMBER(10,2),
+    FECHA_VENTA     DATE,
+    REGION          VARCHAR(50),
+    ESTADO_ENVIO    VARCHAR(50),
+    CONSTRAINT PK_VENTAS PRIMARY KEY (ID_VENTA)
+);
+
+-- Insertar 1,200 registros sintéticos de ventas
+-- CLIENTES, PRODUCTOS y EMPLEADOS se asignan de forma cíclica para mantener relaciones válidas
+INSERT INTO VENTAS (
+    ID_VENTA,
+    ID_CLIENTE,
+    ID_PRODUCTO,
+    EMPLEADO_ID,
+    PRODUCTO,
+    CATEGORIA,
+    CANTIDAD,
+    PRECIO_UNITARIO,
+    TOTAL_VENTA,
+    FECHA_VENTA,
+    REGION,
+    ESTADO_ENVIO
+)
+WITH clientes_ordenados AS (
+    SELECT
+        ID_CLIENTE,
+        ROW_NUMBER() OVER (ORDER BY ID_CLIENTE) AS rn
+    FROM CLIENTES
+),
+total_clientes AS (
+    SELECT COUNT(*) AS total
+    FROM clientes_ordenados
+),
+productos_ordenados AS (
+    SELECT
+        ID_PRODUCTO,
+        NOMBRE_PRODUCTO,
+        CATEGORIA,
+        PRECIO,
+        ROW_NUMBER() OVER (ORDER BY ID_PRODUCTO) AS rn
+    FROM PRODUCTOS
+),
+total_productos AS (
+    SELECT COUNT(*) AS total
+    FROM productos_ordenados
+),
+empleados_ordenados AS (
+    SELECT
+        EMPLEADO_ID,
+        REGION,
+        ROW_NUMBER() OVER (ORDER BY EMPLEADO_ID) AS rn
+    FROM EMPLEADOS
+),
+total_empleados AS (
+    SELECT COUNT(*) AS total
+    FROM empleados_ordenados
+),
+base AS (
+    SELECT
+        ROW_NUMBER() OVER (ORDER BY SEQ4()) AS n
+    FROM TABLE(GENERATOR(ROWCOUNT => 1200))
+),
+ventas_base AS (
+    SELECT
+        b.n AS ID_VENTA,
+        c.ID_CLIENTE,
+        p.ID_PRODUCTO,
+        e.EMPLEADO_ID,
+        p.NOMBRE_PRODUCTO AS PRODUCTO,
+        p.CATEGORIA,
+        MOD(b.n, 5) + 1 AS CANTIDAD,
+        p.PRECIO AS PRECIO_UNITARIO,
+        DATEADD(DAY, MOD(b.n * 3, 1095), DATE '2022-01-01') AS FECHA_VENTA,
+        e.REGION,
+        CASE
+            WHEN MOD(b.n, 11) = 0 THEN NULL
+            WHEN MOD(b.n, 4) = 0 THEN 'Pendiente'
+            WHEN MOD(b.n, 4) = 1 THEN 'Enviado'
+            WHEN MOD(b.n, 4) = 2 THEN 'Entregado'
+            ELSE 'Cancelado'
+        END AS ESTADO_ENVIO
+    FROM base b
+    CROSS JOIN total_clientes tc
+    CROSS JOIN total_productos tp
+    CROSS JOIN total_empleados te
+    JOIN clientes_ordenados c
+      ON c.rn = MOD(b.n - 1, tc.total) + 1
+    JOIN productos_ordenados p
+      ON p.rn = MOD(b.n - 1, tp.total) + 1
+    JOIN empleados_ordenados e
+      ON e.rn = MOD(b.n - 1, te.total) + 1
+)
+SELECT
+    ID_VENTA,
+    ID_CLIENTE,
+    ID_PRODUCTO,
+    EMPLEADO_ID,
+    PRODUCTO,
+    CATEGORIA,
+    CANTIDAD,
+    PRECIO_UNITARIO,
+    CAST(CANTIDAD * PRECIO_UNITARIO AS NUMBER(10,2)) AS TOTAL_VENTA,
+    FECHA_VENTA,
+    REGION,
+    ESTADO_ENVIO
+FROM ventas_base;
+
+-- Validación general de carga
+SELECT COUNT(*) AS total_ventas
+FROM VENTAS;
+
+-- Validación de integridad: todas las ventas deben tener cliente, producto y empleado relacionados
+SELECT COUNT(*) AS ventas_sin_cliente_relacionado
+FROM VENTAS V
+LEFT JOIN CLIENTES C
+    ON V.ID_CLIENTE = C.ID_CLIENTE
+WHERE C.ID_CLIENTE IS NULL;
+
+SELECT COUNT(*) AS ventas_sin_producto_relacionado
+FROM VENTAS V
+LEFT JOIN PRODUCTOS P
+    ON V.ID_PRODUCTO = P.ID_PRODUCTO
+WHERE P.ID_PRODUCTO IS NULL;
+
+SELECT COUNT(*) AS ventas_sin_empleado_relacionado
+FROM VENTAS V
+LEFT JOIN EMPLEADOS E
+    ON V.EMPLEADO_ID = E.EMPLEADO_ID
+WHERE E.EMPLEADO_ID IS NULL;
+
+-- Validación de valores necesarios para la práctica
+SELECT DISTINCT REGION
+FROM VENTAS
+ORDER BY REGION;
+
+SELECT DISTINCT CATEGORIA
+FROM VENTAS
+ORDER BY CATEGORIA;
+
+SELECT
+    COUNT(*) AS ventas_sin_estado_envio
+FROM VENTAS
+WHERE ESTADO_ENVIO IS NULL;
+
+-- Prueba de JOIN con PRODUCTOS: ingreso promedio por categoría
+SELECT
+    P.CATEGORIA,
+    COUNT(*)                        AS total_ventas,
+    SUM(V.TOTAL_VENTA)              AS ingreso_total,
+    ROUND(AVG(V.TOTAL_VENTA), 2)    AS ingreso_promedio,
+    MIN(V.TOTAL_VENTA)              AS ingreso_minimo,
+    MAX(V.TOTAL_VENTA)              AS ingreso_maximo
+FROM VENTAS V
+    JOIN PRODUCTOS P ON V.ID_PRODUCTO = P.ID_PRODUCTO
+GROUP BY P.CATEGORIA
+ORDER BY ingreso_total DESC;
+
+-- Prueba de JOIN con EMPLEADOS: ventas por empleado
+SELECT
+    E.NOMBRE_EMPLEADO,
+    E.REGION,
+    E.CARGO,
+    COUNT(*) AS total_ventas,
+    SUM(V.TOTAL_VENTA) AS ingreso_total
+FROM VENTAS V
+    JOIN EMPLEADOS E ON V.EMPLEADO_ID = E.EMPLEADO_ID
+GROUP BY
+    E.NOMBRE_EMPLEADO,
+    E.REGION,
+    E.CARGO
+ORDER BY ingreso_total DESC;
+
+-- Muestra final
+SELECT *
+FROM VENTAS
+ORDER BY ID_VENTA
+LIMIT 10;
+```
+
+#### Resultado Esperado
+
+Al finalizar la ejecución del script, la tabla `EMPLEADOS` queda disponible con datos suficientes para completar todos los pasos de la práctica y la tabla **VENTAS** quedara ajustada para las consultas.
+
+---
+
 ### Configuración Inicial del Entorno
 
 Antes de comenzar los ejercicios, ejecuta los siguientes comandos en un nuevo Worksheet de Snowsight para asegurarte de estar en el contexto correcto:
+
+1. Clic en la sección **Projects** y luego clic en **Workspaces**.
+2. Abre tu **Workspace** llamado **SnowEssLAbs**.
+3. Crea un archivo de tipo SQL llamado **`Lab07_Integracion`**.
+4. Ejecuta los siguientes comandos para asegurarte de estar trabajando en el contexto correcto:
 
 ```sql
 -- 1. Seleccionar el rol de trabajo
@@ -87,7 +400,6 @@ USE WAREHOUSE COMPUTE_WH;
 USE DATABASE CURSO_SQL;
 
 -- 4. Seleccionar el schema correspondiente
---    En entorno compartido, reemplaza PUBLIC por tu schema asignado (ej. ESTUDIANTE_01)
 USE SCHEMA PUBLIC;
 
 -- 5. Verificar que las tablas del laboratorio están disponibles
@@ -110,16 +422,14 @@ SHOW TABLES;
 
 #### Instrucciones
 
-**1.1.** Abre un nuevo Worksheet en Snowsight. Nómbralo `Lab07 - Integración de Datos`.
-
-**1.2.** Examina la estructura de la tabla `VENTAS` para identificar sus columnas y claves:
+**1.1.** Examina la estructura de la tabla `VENTAS` para identificar sus columnas y claves:
 
 ```sql
 -- Explorar la estructura de la tabla VENTAS
 DESCRIBE TABLE VENTAS;
 ```
 
-**1.3.** Repite el proceso para las demás tablas:
+**1.2.** Repite el proceso para las demás tablas:
 
 ```sql
 -- Explorar la estructura de CLIENTES
@@ -132,7 +442,7 @@ DESCRIBE TABLE PRODUCTOS;
 DESCRIBE TABLE EMPLEADOS;
 ```
 
-**1.4.** Visualiza una muestra de datos de cada tabla para familiarizarte con el contenido:
+**1.3.** Visualiza una muestra de datos de cada tabla para familiarizarte con el contenido:
 
 ```sql
 -- Muestra de VENTAS
@@ -148,29 +458,29 @@ SELECT * FROM PRODUCTOS LIMIT 5;
 SELECT * FROM EMPLEADOS LIMIT 5;
 ```
 
-**1.5.** Basándote en los resultados, completa mentalmente (o en papel) el siguiente diagrama de relaciones:
+**1.4.** Basándote en los resultados, completa mentalmente (o en papel) el siguiente diagrama de relaciones:
 
 ```
 CLIENTES                    VENTAS                     PRODUCTOS
 ────────────────            ──────────────────         ─────────────────
-CLIENTE_ID (PK)  ◄────────  CLIENTE_ID (FK)            PRODUCTO_ID (PK)
-NOMBRE                      VENTA_ID (PK)    ─────────► PRODUCTO_ID (FK)  [*ver nota]
-CORREO                      PRODUCTO_ID (FK)            NOMBRE_PRODUCTO
+ID_CLIENTE (PK)  ◄────────  ID_CLIENTE (FK)            ID_PRODUCTO (PK)
+NOMBRE                      ID_VENTA (PK)    ─────────► ID_PRODUCTO (FK)  [*ver nota]
+CORREO                      ID_PRODUCTO (FK)            NOMBRE_PRODUCTO
 CIUDAD                      EMPLEADO_ID (FK) ──┐        CATEGORIA
 SEGMENTO                    FECHA_VENTA        │        PRECIO_UNITARIO
                             CANTIDAD           │
-                            MONTO_TOTAL        │        EMPLEADOS
+                            TOTAL_VENTA        │        EMPLEADOS
                                                └──────► EMPLEADO_ID (PK)
                                                         NOMBRE_EMPLEADO
                                                         REGION
                                                         CARGO
 ```
 
-> 📝 **Nota:** La columna exacta que conecta `VENTAS` con `PRODUCTOS` puede llamarse `PRODUCTO_ID` en ambas tablas. Ajusta el diagrama según lo que observes en tu `DESCRIBE TABLE`.
+> 📝 **Nota:** La columna exacta que conecta `VENTAS` con `PRODUCTOS` puede llamarse `ID_PRODUCTO` en ambas tablas. Ajusta el diagrama según lo que observes en tu `DESCRIBE TABLE`.
 
 #### Resultado Esperado
 
-- La tabla `VENTAS` contiene claves foráneas (`CLIENTE_ID`, `PRODUCTO_ID`, `EMPLEADO_ID`) que referencian las claves primarias de `CLIENTES`, `PRODUCTOS` y `EMPLEADOS` respectivamente.
+- La tabla `VENTAS` contiene claves foráneas (`ID_CLIENTE`, `ID_PRODUCTO`, `EMPLEADO_ID`) que referencian las claves primarias de `CLIENTES`, `PRODUCTOS` y `EMPLEADOS` respectivamente.
 - Cada venta pertenece a exactamente un cliente, un producto y un empleado (relaciones **uno a muchos**).
 
 #### Verificación
@@ -204,37 +514,38 @@ Debes obtener cuatro filas, cada una con un conteo mayor a cero.
 -- INNER JOIN básico: VENTAS con CLIENTES
 -- Usamos alias de tabla: v para VENTAS, c para CLIENTES
 SELECT
-    v.VENTA_ID,
+    v.ID_VENTA,
     v.FECHA_VENTA,
-    v.MONTO_TOTAL,
+    v.TOTAL_VENTA,
     c.NOMBRE,
     c.CIUDAD
 FROM VENTAS AS v
 INNER JOIN CLIENTES AS c
-    ON v.CLIENTE_ID = c.CLIENTE_ID
+    ON v.ID_CLIENTE = c.ID_CLIENTE
 LIMIT 10;
 ```
 
 **2.2.** Observa el resultado. Nota que:
+
 - Cada fila de `VENTAS` ahora muestra el nombre y ciudad del cliente correspondiente.
-- Solo aparecen ventas que tienen un `CLIENTE_ID` que existe en la tabla `CLIENTES`.
-- Los alias `v` y `c` permiten escribir `v.VENTA_ID` en lugar de `VENTAS.VENTA_ID`.
+- Solo aparecen ventas que tienen un `ID_CLIENTE` que existe en la tabla `CLIENTES`.
+- Los alias `v` y `c` permiten escribir `v.ID_CLIENTE` en lugar de `VENTAS.ID_VENTA`.
 
 **2.3.** Amplía la consulta para incluir más columnas útiles y ordenar el resultado:
 
 ```sql
 -- INNER JOIN enriquecido con más columnas y ordenamiento
 SELECT
-    v.VENTA_ID,
+    v.ID_VENTA,
     v.FECHA_VENTA,
     c.NOMBRE          AS nombre_cliente,
     c.CIUDAD          AS ciudad_cliente,
     c.SEGMENTO        AS segmento_cliente,
     v.CANTIDAD,
-    v.MONTO_TOTAL
+    v.TOTAL_VENTA
 FROM VENTAS AS v
 INNER JOIN CLIENTES AS c
-    ON v.CLIENTE_ID = c.CLIENTE_ID
+    ON v.ID_CLIENTE = c.ID_CLIENTE
 ORDER BY v.FECHA_VENTA DESC
 LIMIT 20;
 ```
@@ -243,34 +554,34 @@ LIMIT 20;
 
 ```sql
 -- ¿Qué pasa sin alias cuando hay columnas con el mismo nombre?
--- Esta consulta genera ambigüedad en CLIENTE_ID
+-- Esta consulta genera ambigüedad en ID_CLIENTE
 SELECT
-    VENTA_ID,
+    ID_VENTA,
     FECHA_VENTA,
-    CLIENTE_ID,       -- ← AMBIGUO: ¿de cuál tabla?
+    ID_CLIENTE,       -- ← AMBIGUO: ¿de cuál tabla?
     NOMBRE,
-    MONTO_TOTAL
+    TOTAL_VENTA
 FROM VENTAS
 INNER JOIN CLIENTES
-    ON VENTAS.CLIENTE_ID = CLIENTES.CLIENTE_ID
+    ON VENTAS.ID_CLIENTE = CLIENTES.ID_CLIENTE
 LIMIT 5;
 ```
 
-> 💡 **Punto de aprendizaje:** Snowflake generará un error de ambigüedad en `CLIENTE_ID` porque esa columna existe en ambas tablas. La solución es siempre usar la notación `tabla.columna` o, mejor aún, **alias de tabla**.
+> 💡 **Punto de aprendizaje:** Snowflake generará un error de ambigüedad en `ID_CLIENTE` porque esa columna existe en ambas tablas. La solución es siempre usar la notación `tabla.columna` o, mejor aún, **alias de tabla**.
 
 **2.5.** Corrige la consulta anterior usando alias:
 
 ```sql
 -- Versión corregida con alias para resolver ambigüedad
 SELECT
-    v.VENTA_ID,
+    v.ID_VENTA,
     v.FECHA_VENTA,
-    v.CLIENTE_ID,     -- Ahora es explícito: viene de VENTAS
+    v.ID_CLIENTE,     -- Ahora es explícito: viene de VENTAS
     c.NOMBRE,
-    v.MONTO_TOTAL
+    v.TOTAL_VENTA
 FROM VENTAS AS v
 INNER JOIN CLIENTES AS c
-    ON v.CLIENTE_ID = c.CLIENTE_ID
+    ON v.ID_CLIENTE = c.ID_CLIENTE
 LIMIT 5;
 ```
 
@@ -278,7 +589,7 @@ LIMIT 5;
 
 La consulta del paso 2.3 debe devolver filas como las siguientes (los valores exactos dependen de tu dataset):
 
-| VENTA_ID | FECHA_VENTA | NOMBRE_CLIENTE | CIUDAD_CLIENTE | SEGMENTO_CLIENTE | CANTIDAD | MONTO_TOTAL |
+| ID_VENTA | FECHA_VENTA | NOMBRE_CLIENTE | CIUDAD_CLIENTE | SEGMENTO_CLIENTE | CANTIDAD | TOTAL_VENTA |
 |----------|-------------|----------------|----------------|------------------|----------|-------------|
 | 1045     | 2024-03-15  | Ana Torres     | Ciudad de México| Corporativo     | 3        | 4500.00     |
 | 1044     | 2024-03-14  | Luis Ramos     | Guadalajara    | Minorista        | 1        | 890.00      |
@@ -293,13 +604,13 @@ Verifica que el `INNER JOIN` solo devuelve registros con coincidencia en ambas t
 SELECT COUNT(*) AS total_ventas_con_cliente
 FROM VENTAS AS v
 INNER JOIN CLIENTES AS c
-    ON v.CLIENTE_ID = c.CLIENTE_ID;
+    ON v.ID_CLIENTE = c.ID_CLIENTE;
 
 -- Compara con el total de VENTAS
 SELECT COUNT(*) AS total_ventas FROM VENTAS;
 ```
 
-Si ambos conteos son iguales, todos los registros de `VENTAS` tienen un cliente correspondiente en `CLIENTES`. Si el JOIN devuelve menos, existen ventas con `CLIENTE_ID` sin coincidencia.
+Si ambos conteos son iguales, todos los registros de `VENTAS` tienen un cliente correspondiente en `CLIENTES`. Si el JOIN devuelve menos, existen ventas con `ID_CLIENTE` sin coincidencia.
 
 ---
 
@@ -314,20 +625,20 @@ Si ambos conteos son iguales, todos los registros de `VENTAS` tienen un cliente 
 ```sql
 -- JOIN de tres tablas: VENTAS + CLIENTES + PRODUCTOS
 SELECT
-    v.VENTA_ID,
+    v.ID_VENTA,
     v.FECHA_VENTA,
     c.NOMBRE          AS nombre_cliente,
     c.CIUDAD          AS ciudad_cliente,
     p.NOMBRE_PRODUCTO,
     p.CATEGORIA,
     v.CANTIDAD,
-    p.PRECIO_UNITARIO,
-    v.MONTO_TOTAL
+    p.PRECIO,
+    v.TOTAL_VENTA
 FROM VENTAS AS v
 INNER JOIN CLIENTES AS c
-    ON v.CLIENTE_ID = c.CLIENTE_ID
+    ON v.ID_CLIENTE = c.ID_CLIENTE
 INNER JOIN PRODUCTOS AS p
-    ON v.PRODUCTO_ID = p.PRODUCTO_ID
+    ON v.ID_PRODUCTO = p.ID_PRODUCTO
 ORDER BY v.FECHA_VENTA DESC
 LIMIT 15;
 ```
@@ -337,7 +648,7 @@ LIMIT 15;
 ```sql
 -- JOIN de cuatro tablas: VENTAS + CLIENTES + PRODUCTOS + EMPLEADOS
 SELECT
-    v.VENTA_ID,
+    v.ID_VENTA,
     v.FECHA_VENTA,
     c.NOMBRE          AS nombre_cliente,
     c.CIUDAD          AS ciudad_cliente,
@@ -346,15 +657,15 @@ SELECT
     e.NOMBRE_EMPLEADO AS vendedor,
     e.REGION          AS region_vendedor,
     v.CANTIDAD,
-    v.MONTO_TOTAL
+    v.TOTAL_VENTA
 FROM VENTAS AS v
 INNER JOIN CLIENTES AS c
-    ON v.CLIENTE_ID = c.CLIENTE_ID
+    ON v.ID_CLIENTE = c.ID_CLIENTE
 INNER JOIN PRODUCTOS AS p
-    ON v.PRODUCTO_ID = p.PRODUCTO_ID
+    ON v.ID_PRODUCTO = p.ID_PRODUCTO
 INNER JOIN EMPLEADOS AS e
     ON v.EMPLEADO_ID = e.EMPLEADO_ID
-ORDER BY v.MONTO_TOTAL DESC
+ORDER BY v.TOTAL_VENTA DESC
 LIMIT 20;
 ```
 
@@ -363,22 +674,22 @@ LIMIT 20;
 ```sql
 -- JOIN de cuatro tablas filtrado por categoría de producto
 SELECT
-    v.VENTA_ID,
+    v.ID_VENTA,
     v.FECHA_VENTA,
     c.NOMBRE          AS nombre_cliente,
     p.NOMBRE_PRODUCTO,
     p.CATEGORIA,
     e.NOMBRE_EMPLEADO AS vendedor,
-    v.MONTO_TOTAL
+    v.TOTAL_VENTA
 FROM VENTAS AS v
 INNER JOIN CLIENTES AS c
-    ON v.CLIENTE_ID = c.CLIENTE_ID
+    ON v.ID_CLIENTE = c.ID_CLIENTE
 INNER JOIN PRODUCTOS AS p
-    ON v.PRODUCTO_ID = p.PRODUCTO_ID
+    ON v.ID_PRODUCTO = p.ID_PRODUCTO
 INNER JOIN EMPLEADOS AS e
     ON v.EMPLEADO_ID = e.EMPLEADO_ID
 WHERE p.CATEGORIA = 'Electrónica'   -- Ajusta según tu dataset
-ORDER BY v.MONTO_TOTAL DESC;
+ORDER BY v.TOTAL_VENTA DESC;
 ```
 
 > 💡 **Buena práctica:** En consultas con múltiples tablas, escribe primero todos los `JOIN` y luego el `WHERE`. Esto hace que la lógica de unión sea fácil de leer de forma separada a la lógica de filtrado.
@@ -398,9 +709,9 @@ SELECT
     COUNT(e.NOMBRE_EMPLEADO)              AS filas_con_empleado
 FROM VENTAS AS v
 INNER JOIN CLIENTES AS c
-    ON v.CLIENTE_ID = c.CLIENTE_ID
+    ON v.ID_CLIENTE = c.ID_CLIENTE
 INNER JOIN PRODUCTOS AS p
-    ON v.PRODUCTO_ID = p.PRODUCTO_ID
+    ON v.ID_PRODUCTO = p.ID_PRODUCTO
 INNER JOIN EMPLEADOS AS e
     ON v.EMPLEADO_ID = e.EMPLEADO_ID;
 ```
@@ -420,14 +731,14 @@ Los cuatro valores deben ser iguales. Si `COUNT(c.NOMBRE)` es menor que `COUNT(*
 ```sql
 -- INNER JOIN: solo clientes que tienen ventas
 SELECT
-    c.CLIENTE_ID,
+    c.ID_CLIENTE,
     c.NOMBRE,
     c.CIUDAD,
-    COUNT(v.VENTA_ID) AS total_ventas
+    COUNT(v.ID_VENTA) AS total_ventas
 FROM CLIENTES AS c
 INNER JOIN VENTAS AS v
-    ON c.CLIENTE_ID = v.CLIENTE_ID
-GROUP BY c.CLIENTE_ID, c.NOMBRE, c.CIUDAD
+    ON c.ID_CLIENTE = v.ID_CLIENTE
+GROUP BY c.ID_CLIENTE, c.NOMBRE, c.CIUDAD
 ORDER BY total_ventas DESC;
 ```
 
@@ -436,14 +747,14 @@ ORDER BY total_ventas DESC;
 ```sql
 -- LEFT JOIN: TODOS los clientes, con o sin ventas
 SELECT
-    c.CLIENTE_ID,
+    c.ID_CLIENTE,
     c.NOMBRE,
     c.CIUDAD,
-    COUNT(v.VENTA_ID) AS total_ventas
+    COUNT(v.ID_VENTA) AS total_ventas
 FROM CLIENTES AS c
 LEFT JOIN VENTAS AS v
-    ON c.CLIENTE_ID = v.CLIENTE_ID
-GROUP BY c.CLIENTE_ID, c.NOMBRE, c.CIUDAD
+    ON c.ID_CLIENTE = v.ID_CLIENTE
+GROUP BY c.ID_CLIENTE, c.NOMBRE, c.CIUDAD
 ORDER BY total_ventas ASC;   -- Los clientes sin ventas aparecen primero (total = 0)
 ```
 
@@ -451,42 +762,42 @@ ORDER BY total_ventas ASC;   -- Los clientes sin ventas aparecen primero (total 
 
 ```sql
 -- Clientes sin ninguna venta registrada
--- La clave: cuando no hay coincidencia en VENTAS, VENTA_ID es NULL
+-- La clave: cuando no hay coincidencia en VENTAS, ID_VENTA es NULL
 SELECT
-    c.CLIENTE_ID,
+    c.ID_CLIENTE,
     c.NOMBRE,
-    c.CORREO,
+    c.EMAIL,
     c.CIUDAD,
     c.SEGMENTO
 FROM CLIENTES AS c
 LEFT JOIN VENTAS AS v
-    ON c.CLIENTE_ID = v.CLIENTE_ID
-WHERE v.VENTA_ID IS NULL   -- Solo los que NO tienen coincidencia en VENTAS
+    ON c.ID_CLIENTE = v.ID_CLIENTE
+WHERE v.ID_VENTA IS NULL   -- Solo los que NO tienen coincidencia en VENTAS
 ORDER BY c.NOMBRE;
 ```
 
-> 💡 **Concepto clave:** Cuando un registro de la tabla izquierda (`CLIENTES`) no tiene coincidencia en la tabla derecha (`VENTAS`), el `LEFT JOIN` rellena todas las columnas de `VENTAS` con `NULL`. Por eso `WHERE v.VENTA_ID IS NULL` es el patrón estándar para encontrar registros sin correspondencia.
+> 💡 **Concepto clave:** Cuando un registro de la tabla izquierda (`CLIENTES`) no tiene coincidencia en la tabla derecha (`VENTAS`), el `LEFT JOIN` rellena todas las columnas de `VENTAS` con `NULL`. Por eso `WHERE v.ID_VENTA IS NULL` es el patrón estándar para encontrar registros sin correspondencia.
 
 **4.4.** Compara los resultados de `INNER JOIN` vs `LEFT JOIN` con un conteo:
 
 ```sql
 -- Comparación de resultados INNER JOIN vs LEFT JOIN
-SELECT 'INNER JOIN' AS tipo_join, COUNT(DISTINCT c.CLIENTE_ID) AS clientes_incluidos
+SELECT 'INNER JOIN' AS tipo_join, COUNT(DISTINCT c.ID_CLIENTE) AS clientes_incluidos
 FROM CLIENTES AS c
-INNER JOIN VENTAS AS v ON c.CLIENTE_ID = v.CLIENTE_ID
+INNER JOIN VENTAS AS v ON c.ID_CLIENTE = v.ID_CLIENTE
 
 UNION ALL
 
-SELECT 'LEFT JOIN (todos)', COUNT(DISTINCT c.CLIENTE_ID)
+SELECT 'LEFT JOIN (todos)', COUNT(DISTINCT c.ID_CLIENTE)
 FROM CLIENTES AS c
-LEFT JOIN VENTAS AS v ON c.CLIENTE_ID = v.CLIENTE_ID
+LEFT JOIN VENTAS AS v ON c.ID_CLIENTE = v.ID_CLIENTE
 
 UNION ALL
 
-SELECT 'Sin ventas (LEFT JOIN + IS NULL)', COUNT(DISTINCT c.CLIENTE_ID)
+SELECT 'Sin ventas (LEFT JOIN + IS NULL)', COUNT(DISTINCT c.ID_CLIENTE)
 FROM CLIENTES AS c
-LEFT JOIN VENTAS AS v ON c.CLIENTE_ID = v.CLIENTE_ID
-WHERE v.VENTA_ID IS NULL;
+LEFT JOIN VENTAS AS v ON c.ID_CLIENTE = v.ID_CLIENTE
+WHERE v.ID_VENTA IS NULL;
 ```
 
 #### Resultado Esperado
@@ -523,11 +834,11 @@ SELECT COUNT(*) AS total_clientes_en_tabla FROM CLIENTES;
 SELECT
     c.NOMBRE          AS nombre_cliente,
     c.SEGMENTO,
-    SUM(v.MONTO_TOTAL) AS total_compras,
-    COUNT(v.VENTA_ID)  AS numero_ventas
+    SUM(v.TOTAL_VENTA) AS total_compras,
+    COUNT(v.ID_VENTA)  AS numero_ventas
 FROM CLIENTES AS c
 INNER JOIN VENTAS AS v
-    ON c.CLIENTE_ID = v.CLIENTE_ID
+    ON c.ID_CLIENTE = v.ID_CLIENTE
 GROUP BY c.NOMBRE, c.SEGMENTO
 ORDER BY total_compras DESC;
 ```
@@ -539,11 +850,11 @@ ORDER BY total_compras DESC;
 SELECT
     c.NOMBRE              AS nombre_cliente,
     c.SEGMENTO,
-    COALESCE(SUM(v.MONTO_TOTAL), 0) AS total_compras,
-    COUNT(v.VENTA_ID)                AS numero_ventas
+    COALESCE(SUM(v.TOTAL_VENTA), 0) AS total_compras,
+    COUNT(v.ID_VENTA)                AS numero_ventas
 FROM CLIENTES AS c
 LEFT JOIN VENTAS AS v
-    ON c.CLIENTE_ID = v.CLIENTE_ID
+    ON c.ID_CLIENTE = v.ID_CLIENTE
 GROUP BY c.NOMBRE, c.SEGMENTO
 ORDER BY total_compras DESC;
 ```
@@ -574,8 +885,8 @@ ORDER BY total_compras DESC;
 -- con los clientes identificados en el paso 4.3
 SELECT COUNT(*) AS clientes_sin_ventas
 FROM CLIENTES AS c
-LEFT JOIN VENTAS AS v ON c.CLIENTE_ID = v.CLIENTE_ID
-WHERE v.VENTA_ID IS NULL;
+LEFT JOIN VENTAS AS v ON c.ID_CLIENTE = v.ID_CLIENTE
+WHERE v.ID_VENTA IS NULL;
 ```
 
 ---
@@ -594,11 +905,11 @@ SELECT
     e.NOMBRE_EMPLEADO,
     e.REGION,
     p.CATEGORIA,
-    v.MONTO_TOTAL,
+    v.TOTAL_VENTA,
     v.FECHA_VENTA
 FROM VENTAS AS v
-INNER JOIN CLIENTES AS c   ON v.CLIENTE_ID  = c.CLIENTE_ID
-INNER JOIN PRODUCTOS AS p  ON v.PRODUCTO_ID = p.PRODUCTO_ID
+INNER JOIN CLIENTES AS c   ON v.ID_CLIENTE  = c.ID_CLIENTE
+INNER JOIN PRODUCTOS AS p  ON v.ID_PRODUCTO = p.ID_PRODUCTO
 INNER JOIN EMPLEADOS AS e  ON v.EMPLEADO_ID = e.EMPLEADO_ID
 LIMIT 10;
 ```
@@ -611,12 +922,12 @@ SELECT
     e.NOMBRE_EMPLEADO                     AS vendedor,
     e.REGION,
     p.CATEGORIA,
-    COUNT(v.VENTA_ID)                     AS numero_ventas,
-    SUM(v.MONTO_TOTAL)                    AS ventas_totales,
-    ROUND(AVG(v.MONTO_TOTAL), 2)          AS ticket_promedio
+    COUNT(v.ID_VENTA)                     AS numero_ventas,
+    SUM(v.TOTAL_VENTA)                    AS ventas_totales,
+    ROUND(AVG(v.TOTAL_VENTA), 2)          AS ticket_promedio
 FROM VENTAS AS v
-INNER JOIN CLIENTES AS c   ON v.CLIENTE_ID  = c.CLIENTE_ID
-INNER JOIN PRODUCTOS AS p  ON v.PRODUCTO_ID = p.PRODUCTO_ID
+INNER JOIN CLIENTES AS c   ON v.ID_CLIENTE  = c.ID_CLIENTE
+INNER JOIN PRODUCTOS AS p  ON v.ID_PRODUCTO = p.ID_PRODUCTO
 INNER JOIN EMPLEADOS AS e  ON v.EMPLEADO_ID = e.EMPLEADO_ID
 GROUP BY e.NOMBRE_EMPLEADO, e.REGION, p.CATEGORIA
 ORDER BY ventas_totales DESC;
@@ -630,16 +941,16 @@ SELECT
     e.NOMBRE_EMPLEADO                     AS vendedor,
     e.REGION,
     p.CATEGORIA,
-    COUNT(v.VENTA_ID)                     AS numero_ventas,
-    SUM(v.MONTO_TOTAL)                    AS ventas_totales,
-    ROUND(AVG(v.MONTO_TOTAL), 2)          AS ticket_promedio
+    COUNT(v.ID_VENTA)                     AS numero_ventas,
+    SUM(v.TOTAL_VENTA)                    AS ventas_totales,
+    ROUND(AVG(v.TOTAL_VENTA), 2)          AS ticket_promedio
 FROM VENTAS AS v
-INNER JOIN CLIENTES AS c   ON v.CLIENTE_ID  = c.CLIENTE_ID
-INNER JOIN PRODUCTOS AS p  ON v.PRODUCTO_ID = p.PRODUCTO_ID
+INNER JOIN CLIENTES AS c   ON v.ID_CLIENTE  = c.ID_CLIENTE
+INNER JOIN PRODUCTOS AS p  ON v.ID_PRODUCTO = p.ID_PRODUCTO
 INNER JOIN EMPLEADOS AS e  ON v.EMPLEADO_ID = e.EMPLEADO_ID
 WHERE YEAR(v.FECHA_VENTA) = 2024          -- Ajusta el año según tu dataset
 GROUP BY e.NOMBRE_EMPLEADO, e.REGION, p.CATEGORIA
-HAVING SUM(v.MONTO_TOTAL) > 1000          -- Solo grupos con ventas significativas
+HAVING SUM(v.TOTAL_VENTA) > 1000          -- Solo grupos con ventas significativas
 ORDER BY e.REGION, ventas_totales DESC;
 ```
 
@@ -651,14 +962,14 @@ SELECT
     e.NOMBRE_EMPLEADO                          AS vendedor,
     e.REGION,
     e.CARGO,
-    COUNT(DISTINCT v.CLIENTE_ID)               AS clientes_unicos,
-    COUNT(v.VENTA_ID)                          AS numero_ventas,
-    SUM(v.MONTO_TOTAL)                         AS ventas_totales,
-    ROUND(AVG(v.MONTO_TOTAL), 2)               AS ticket_promedio,
-    MAX(v.MONTO_TOTAL)                         AS venta_maxima
+    COUNT(DISTINCT v.ID_CLIENTE)               AS clientes_unicos,
+    COUNT(v.ID_VENTA)                          AS numero_ventas,
+    SUM(v.TOTAL_VENTA)                         AS ventas_totales,
+    ROUND(AVG(v.TOTAL_VENTA), 2)               AS ticket_promedio,
+    MAX(v.TOTAL_VENTA)                         AS venta_maxima
 FROM VENTAS AS v
-INNER JOIN CLIENTES AS c   ON v.CLIENTE_ID  = c.CLIENTE_ID
-INNER JOIN PRODUCTOS AS p  ON v.PRODUCTO_ID = p.PRODUCTO_ID
+INNER JOIN CLIENTES AS c   ON v.ID_CLIENTE  = c.ID_CLIENTE
+INNER JOIN PRODUCTOS AS p  ON v.ID_PRODUCTO = p.ID_PRODUCTO
 INNER JOIN EMPLEADOS AS e  ON v.EMPLEADO_ID = e.EMPLEADO_ID
 GROUP BY e.NOMBRE_EMPLEADO, e.REGION, e.CARGO
 ORDER BY ventas_totales DESC
@@ -680,14 +991,14 @@ El reporte del paso 6.4 debe mostrar una tabla con los 5 empleados más producti
 ```sql
 -- Verificar que el total de ventas del reporte
 -- coincide con el total general de la tabla VENTAS
-SELECT SUM(MONTO_TOTAL) AS gran_total FROM VENTAS;
+SELECT SUM(TOTAL_VENTA) AS gran_total FROM VENTAS;
 
 -- Comparar con la suma del reporte (sin LIMIT)
 SELECT SUM(ventas_totales) AS total_en_reporte
 FROM (
     SELECT
         e.NOMBRE_EMPLEADO,
-        SUM(v.MONTO_TOTAL) AS ventas_totales
+        SUM(v.TOTAL_VENTA) AS ventas_totales
     FROM VENTAS AS v
     INNER JOIN EMPLEADOS AS e ON v.EMPLEADO_ID = e.EMPLEADO_ID
     GROUP BY e.NOMBRE_EMPLEADO
@@ -723,13 +1034,13 @@ Requisitos de la consulta:
 SELECT
     c.SEGMENTO,
     p.CATEGORIA,
-    COUNT(DISTINCT c.CLIENTE_ID)    AS clientes_unicos,
-    COUNT(v.VENTA_ID)               AS numero_ventas,
-    SUM(v.MONTO_TOTAL)              AS ventas_totales,
-    ROUND(AVG(v.MONTO_TOTAL), 2)    AS ticket_promedio
+    COUNT(DISTINCT c.ID_CLIENTE)    AS clientes_unicos,
+    COUNT(v.ID_VENTA)               AS numero_ventas,
+    SUM(v.TOTAL_VENTA)              AS ventas_totales,
+    ROUND(AVG(v.TOTAL_VENTA), 2)    AS ticket_promedio
 FROM VENTAS AS v
-INNER JOIN CLIENTES AS c   ON v.CLIENTE_ID  = c.CLIENTE_ID
-INNER JOIN PRODUCTOS AS p  ON v.PRODUCTO_ID = p.PRODUCTO_ID
+INNER JOIN CLIENTES AS c   ON v.ID_CLIENTE  = c.ID_CLIENTE
+INNER JOIN PRODUCTOS AS p  ON v.ID_PRODUCTO = p.ID_PRODUCTO
 GROUP BY c.SEGMENTO, p.CATEGORIA
 ORDER BY ticket_promedio DESC;
 ```
@@ -741,15 +1052,15 @@ ORDER BY ticket_promedio DESC;
 SELECT
     c.SEGMENTO,
     p.CATEGORIA,
-    COUNT(DISTINCT c.CLIENTE_ID)    AS clientes_unicos,
-    COUNT(v.VENTA_ID)               AS numero_ventas,
-    SUM(v.MONTO_TOTAL)              AS ventas_totales,
-    ROUND(AVG(v.MONTO_TOTAL), 2)    AS ticket_promedio
+    COUNT(DISTINCT c.ID_CLIENTE)    AS clientes_unicos,
+    COUNT(v.ID_VENTA)               AS numero_ventas,
+    SUM(v.TOTAL_VENTA)              AS ventas_totales,
+    ROUND(AVG(v.TOTAL_VENTA), 2)    AS ticket_promedio
 FROM VENTAS AS v
-INNER JOIN CLIENTES AS c   ON v.CLIENTE_ID  = c.CLIENTE_ID
-INNER JOIN PRODUCTOS AS p  ON v.PRODUCTO_ID = p.PRODUCTO_ID
+INNER JOIN CLIENTES AS c   ON v.ID_CLIENTE  = c.ID_CLIENTE
+INNER JOIN PRODUCTOS AS p  ON v.ID_PRODUCTO = p.ID_PRODUCTO
 GROUP BY c.SEGMENTO, p.CATEGORIA
-HAVING COUNT(v.VENTA_ID) > 10
+HAVING COUNT(v.ID_VENTA) > 10
 ORDER BY ticket_promedio DESC;
 ```
 
@@ -765,7 +1076,7 @@ SELECT
 FROM EMPLEADOS AS e
 LEFT JOIN VENTAS AS v
     ON e.EMPLEADO_ID = v.EMPLEADO_ID
-WHERE v.VENTA_ID IS NULL
+WHERE v.ID_VENTA IS NULL
 ORDER BY e.REGION, e.NOMBRE_EMPLEADO;
 ```
 
@@ -784,7 +1095,7 @@ SELECT COUNT(DISTINCT SEGMENTO) AS segmentos_en_clientes FROM CLIENTES;
 
 SELECT COUNT(DISTINCT c.SEGMENTO) AS segmentos_en_reporte
 FROM VENTAS AS v
-INNER JOIN CLIENTES AS c ON v.CLIENTE_ID = c.CLIENTE_ID;
+INNER JOIN CLIENTES AS c ON v.ID_CLIENTE = c.ID_CLIENTE;
 ```
 
 Si los números difieren, hay segmentos de clientes que no tienen ninguna venta asociada (lo cual es información de negocio relevante).
@@ -804,20 +1115,20 @@ Ejecuta las siguientes consultas de validación para confirmar que completaste e
 -- Esperado: número de filas igual o menor al total de VENTAS
 SELECT COUNT(*) AS test_inner_join
 FROM VENTAS AS v
-INNER JOIN CLIENTES AS c ON v.CLIENTE_ID = c.CLIENTE_ID;
+INNER JOIN CLIENTES AS c ON v.ID_CLIENTE = c.ID_CLIENTE;
 
 -- Prueba 2: LEFT JOIN devuelve más registros que INNER JOIN
 -- Esperado: resultado_left >= resultado_inner
 SELECT COUNT(*) AS test_left_join
 FROM CLIENTES AS c
-LEFT JOIN VENTAS AS v ON c.CLIENTE_ID = v.CLIENTE_ID;
+LEFT JOIN VENTAS AS v ON c.ID_CLIENTE = v.ID_CLIENTE;
 
 -- Prueba 3: Patrón IS NULL funciona para detectar sin coincidencia
 -- Esperado: número de clientes sin ventas (puede ser 0)
 SELECT COUNT(*) AS clientes_sin_ventas
 FROM CLIENTES AS c
-LEFT JOIN VENTAS AS v ON c.CLIENTE_ID = v.CLIENTE_ID
-WHERE v.VENTA_ID IS NULL;
+LEFT JOIN VENTAS AS v ON c.ID_CLIENTE = v.ID_CLIENTE
+WHERE v.ID_VENTA IS NULL;
 
 -- Prueba 4: JOIN de cuatro tablas es consistente
 -- Esperado: los cuatro conteos son iguales
@@ -827,8 +1138,8 @@ SELECT
     COUNT(p.NOMBRE_PRODUCTO) AS con_producto,
     COUNT(e.NOMBRE_EMPLEADO) AS con_empleado
 FROM VENTAS AS v
-INNER JOIN CLIENTES AS c   ON v.CLIENTE_ID  = c.CLIENTE_ID
-INNER JOIN PRODUCTOS AS p  ON v.PRODUCTO_ID = p.PRODUCTO_ID
+INNER JOIN CLIENTES AS c   ON v.ID_CLIENTE  = c.ID_CLIENTE
+INNER JOIN PRODUCTOS AS p  ON v.ID_PRODUCTO = p.ID_PRODUCTO
 INNER JOIN EMPLEADOS AS e  ON v.EMPLEADO_ID = e.EMPLEADO_ID;
 
 -- Prueba 5: Reporte integrador produce resultados
@@ -836,10 +1147,10 @@ INNER JOIN EMPLEADOS AS e  ON v.EMPLEADO_ID = e.EMPLEADO_ID;
 SELECT
     e.NOMBRE_EMPLEADO,
     p.CATEGORIA,
-    COUNT(v.VENTA_ID)        AS ventas,
-    SUM(v.MONTO_TOTAL)       AS total
+    COUNT(v.ID_VENTA)        AS ventas,
+    SUM(v.TOTAL_VENTA)       AS total
 FROM VENTAS AS v
-INNER JOIN PRODUCTOS AS p  ON v.PRODUCTO_ID = p.PRODUCTO_ID
+INNER JOIN PRODUCTOS AS p  ON v.ID_PRODUCTO = p.ID_PRODUCTO
 INNER JOIN EMPLEADOS AS e  ON v.EMPLEADO_ID = e.EMPLEADO_ID
 GROUP BY e.NOMBRE_EMPLEADO, p.CATEGORIA
 ORDER BY total DESC
@@ -862,22 +1173,22 @@ LIMIT 3;
 **Síntoma:**
 Snowflake devuelve un error similar a:
 ```
-SQL compilation error: ambiguous column name 'CLIENTE_ID'
+SQL compilation error: ambiguous column name 'ID_CLIENTE'
 ```
 La consulta falla al intentar seleccionar o referenciar una columna que existe con el mismo nombre en más de una de las tablas del `JOIN`.
 
 **Causa:**
-Cuando dos o más tablas unidas tienen una columna con el mismo nombre (por ejemplo, `CLIENTE_ID` existe en `VENTAS` y en `CLIENTES`), Snowflake no puede determinar de cuál tabla proviene la referencia si no se especifica explícitamente.
+Cuando dos o más tablas unidas tienen una columna con el mismo nombre (por ejemplo, `ID_CLIENTE` existe en `VENTAS` y en `CLIENTES`), Snowflake no puede determinar de cuál tabla proviene la referencia si no se especifica explícitamente.
 
 **Solución:**
 Siempre usa la notación `alias.columna` para cualquier columna que pueda existir en más de una tabla. Revisa todas las columnas del `SELECT` y del `WHERE`:
 
 ```sql
 -- ❌ Incorrecto — genera ambigüedad
-SELECT CLIENTE_ID, NOMBRE FROM VENTAS INNER JOIN CLIENTES ON ...
+SELECT ID_CLIENTE, NOMBRE FROM VENTAS INNER JOIN CLIENTES ON ...
 
 -- ✅ Correcto — alias resuelve la ambigüedad
-SELECT v.CLIENTE_ID, c.NOMBRE FROM VENTAS AS v INNER JOIN CLIENTES AS c ON ...
+SELECT v.ID_CLIENTE, c.NOMBRE FROM VENTAS AS v INNER JOIN CLIENTES AS c ON ...
 ```
 
 Como regla general, en cualquier consulta con más de una tabla, **prefija todas las columnas con el alias de su tabla**, incluso aquellas que no son ambiguas. Esto hace el código más legible y evita errores futuros cuando el esquema cambia.
@@ -887,24 +1198,24 @@ Como regla general, en cualquier consulta con más de una tabla, **prefija todas
 ### Problema 2: El LEFT JOIN devuelve el mismo resultado que el INNER JOIN
 
 **Síntoma:**
-Al ejecutar un `LEFT JOIN` y luego filtrar con `WHERE v.VENTA_ID IS NULL`, la consulta devuelve 0 filas cuando se esperaban encontrar registros sin coincidencia. O bien, el conteo de filas del `LEFT JOIN` es idéntico al del `INNER JOIN`.
+Al ejecutar un `LEFT JOIN` y luego filtrar con `WHERE v.ID_VENTA IS NULL`, la consulta devuelve 0 filas cuando se esperaban encontrar registros sin coincidencia. O bien, el conteo de filas del `LEFT JOIN` es idéntico al del `INNER JOIN`.
 
 **Causa:**
 El error más común es colocar la condición de filtrado en la cláusula `WHERE` en lugar de en la cláusula `ON`. Cuando se escribe `WHERE v.COLUMNA = 'valor'` después de un `LEFT JOIN`, Snowflake primero realiza el `LEFT JOIN` (incluyendo los `NULL`) y luego aplica el `WHERE`, que **elimina todas las filas con `NULL`** en esa columna, convirtiendo el `LEFT JOIN` en un `INNER JOIN` efectivo.
 
 ```sql
 -- ❌ Incorrecto — el WHERE elimina los NULLs del LEFT JOIN
-SELECT c.NOMBRE, v.MONTO_TOTAL
+SELECT c.NOMBRE, v.TOTAL_VENTA
 FROM CLIENTES AS c
-LEFT JOIN VENTAS AS v ON c.CLIENTE_ID = v.CLIENTE_ID
-WHERE v.MONTO_TOTAL > 100;   -- Esto excluye clientes sin ventas (NULL > 100 = FALSE)
+LEFT JOIN VENTAS AS v ON c.ID_CLIENTE = v.ID_CLIENTE
+WHERE v.TOTAL_VENTA > 100;   -- Esto excluye clientes sin ventas (NULL > 100 = FALSE)
 
 -- ✅ Correcto — mover el filtro de la tabla derecha al ON
-SELECT c.NOMBRE, v.MONTO_TOTAL
+SELECT c.NOMBRE, v.TOTAL_VENTA
 FROM CLIENTES AS c
 LEFT JOIN VENTAS AS v
-    ON c.CLIENTE_ID = v.CLIENTE_ID
-    AND v.MONTO_TOTAL > 100;   -- Filtro dentro del JOIN, preserva clientes sin ventas
+    ON c.ID_CLIENTE = v.ID_CLIENTE
+    AND v.TOTAL_VENTA > 100;   -- Filtro dentro del JOIN, preserva clientes sin ventas
 ```
 
 **Solución:**
@@ -959,6 +1270,3 @@ Los conceptos de `JOIN` aprendidos hoy son la base para análisis más avanzados
 - [Visual JOIN Guide — C.L. Moffatt (clásico)](https://www.codeproject.com/Articles/33052/Visual-Representation-of-SQL-Joins)
 - [SQL JOINs explicados — Mode Analytics](https://mode.com/sql-tutorial/sql-joins/)
 - [COALESCE en Snowflake](https://docs.snowflake.com/en/sql-reference/functions/coalesce)
-
----
-LAB_END---
