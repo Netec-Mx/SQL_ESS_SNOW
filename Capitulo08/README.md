@@ -69,22 +69,569 @@ Al completar este laboratorio serás capaz de:
 | Snowflake Snowsight  | Incluido en toda cuenta Snowflake activa               |
 | Dataset del curso    | `CURSO_SQL` v1.0 (script provisto por el instructor)   |
 
+---
+
+## Paso 0 — Crear y poblar el dataset **VENTAS** en `CURSO_SQL`
+
+**Objetivo:** Preparar el entorno de trabajo creando las tablas requeridas para el laboratorio.
+
+### Instrucciones
+
+1. Inicia sesión en tu cuenta Snowflake en [app.snowflake.com](https://app.snowflake.com).
+2. En el menú lateral izquierdo, haz clic en **Projects → Workspaces**.
+3. Selecciona el Workspace llamado **`Setup_CURSO_SQLSNOW`**.
+4.  Da clic en **Add new** y crea un nuevo archivo tipo **SQL**
+5. Escribe el siguiente nombre del archivo: **`Setup_Lab08_Pedidos`**
+6. A la derecha selecciona el warehouse **`COMPUTE_WH`** o el warehouse asignado/creado al inicio de la creación de la cuenta.
+7. Copia/Pega y ejecuta el siguiente script completo.
+
+> **Nota:** En Snowsight puedes ejecutar todo el bloque completo. Si tu cuenta no permite crear bases de datos, ejecuta el script hasta donde tus permisos lo permitan o solicita apoyo del instructor.
+
+```sql
+-- ============================================================
+-- LAB 08 - Script de inicialización para PEDIDOS y DETALLE_PEDIDOS
+-- Base de datos: CURSO_SQL
+-- Schema: PUBLIC
+-- Requisitos previos:
+--   1) CLIENTES debe existir y tener datos
+--   2) PRODUCTOS debe existir y tener datos
+-- Registros generados:
+--   - PEDIDOS: 1,000
+--   - DETALLE_PEDIDOS: 3,000
+-- Uso recomendado: Ejecutar después del script de CLIENTES y PRODUCTOS
+-- ============================================================
+
+USE WAREHOUSE COMPUTE_WH;
+USE DATABASE CURSO_SQL;
+USE SCHEMA PUBLIC;
+
+-- ============================================================
+-- 1. Verificaciones previas
+-- ============================================================
+
+SELECT COUNT(*) AS total_clientes
+FROM CURSO_SQL.PUBLIC.CLIENTES;
+
+SELECT COUNT(*) AS total_productos
+FROM CURSO_SQL.PUBLIC.PRODUCTOS;
+
+-- ============================================================
+-- 2. Recrear tablas dependientes
+--    Importante: DETALLE_PEDIDOS depende de PEDIDOS, por eso se elimina primero.
+-- ============================================================
+
+DROP TABLE IF EXISTS CURSO_SQL.PUBLIC.DETALLE_PEDIDOS;
+DROP TABLE IF EXISTS CURSO_SQL.PUBLIC.PEDIDOS;
+
+CREATE OR REPLACE TABLE CURSO_SQL.PUBLIC.PEDIDOS (
+    ID_PEDIDO     NUMBER(38,0) NOT NULL,
+    ID_CLIENTE    NUMBER(38,0),
+    FECHA_PEDIDO  DATE,
+    TOTAL_PEDIDO  NUMBER(12,2),
+    ESTADO        VARCHAR(50),
+    CONSTRAINT PK_PEDIDOS PRIMARY KEY (ID_PEDIDO)
+);
+
+CREATE OR REPLACE TABLE CURSO_SQL.PUBLIC.DETALLE_PEDIDOS (
+    ID_DETALLE      NUMBER(38,0) NOT NULL,
+    ID_PEDIDO       NUMBER(38,0),
+    ID_PRODUCTO     NUMBER(38,0),
+    CANTIDAD        NUMBER(38,0),
+    PRECIO_UNITARIO NUMBER(10,2),
+    SUBTOTAL        NUMBER(12,2),
+    CONSTRAINT PK_DETALLE_PEDIDOS PRIMARY KEY (ID_DETALLE)
+);
+
+-- ============================================================
+-- 3. Insertar 1,000 pedidos
+--    - ID_CLIENTE se toma desde CLIENTES para mantener integridad referencial.
+--    - FECHA_PEDIDO cubre 2023, 2024 y 2025 para que funcionen filtros por año.
+--    - ESTADO incluye algunos NULL para auditoría de calidad de datos.
+--    - TOTAL_PEDIDO se calcula después con base en DETALLE_PEDIDOS.
+-- ============================================================
+
+INSERT INTO CURSO_SQL.PUBLIC.PEDIDOS (
+    ID_PEDIDO,
+    ID_CLIENTE,
+    FECHA_PEDIDO,
+    TOTAL_PEDIDO,
+    ESTADO
+)
+WITH clientes_ordenados AS (
+    SELECT
+        ID_CLIENTE,
+        ROW_NUMBER() OVER (ORDER BY ID_CLIENTE) AS RN
+    FROM CURSO_SQL.PUBLIC.CLIENTES
+), total_clientes AS (
+    SELECT COUNT(*) AS TOTAL
+    FROM clientes_ordenados
+), base AS (
+    SELECT
+        ROW_NUMBER() OVER (ORDER BY SEQ4()) AS ID_PEDIDO
+    FROM TABLE(GENERATOR(ROWCOUNT => 1000))
+)
+SELECT
+    b.ID_PEDIDO,
+    c.ID_CLIENTE,
+    DATEADD(DAY, MOD(b.ID_PEDIDO * 2, 1095), DATE '2023-01-01') AS FECHA_PEDIDO,
+    CAST(0 AS NUMBER(12,2)) AS TOTAL_PEDIDO,
+    CASE
+        WHEN MOD(b.ID_PEDIDO, 23) = 0 THEN NULL
+        WHEN MOD(b.ID_PEDIDO, 5) = 0 THEN 'Pendiente'
+        WHEN MOD(b.ID_PEDIDO, 5) = 1 THEN 'Pagado'
+        WHEN MOD(b.ID_PEDIDO, 5) = 2 THEN 'Enviado'
+        WHEN MOD(b.ID_PEDIDO, 5) = 3 THEN 'Entregado'
+        ELSE 'Cancelado'
+    END AS ESTADO
+FROM base b
+CROSS JOIN total_clientes tc
+JOIN clientes_ordenados c
+    ON c.RN = MOD(b.ID_PEDIDO - 1, tc.TOTAL) + 1;
+
+-- ============================================================
+-- 4. Insertar 3,000 líneas de detalle
+--    - 3 líneas por pedido.
+--    - ID_PRODUCTO se toma desde PRODUCTOS para mantener integridad referencial.
+--    - La combinación ID_PEDIDO + ID_PRODUCTO queda sin duplicados intencionales.
+-- ============================================================
+
+INSERT INTO CURSO_SQL.PUBLIC.DETALLE_PEDIDOS (
+    ID_DETALLE,
+    ID_PEDIDO,
+    ID_PRODUCTO,
+    CANTIDAD,
+    PRECIO_UNITARIO,
+    SUBTOTAL
+)
+WITH productos_ordenados AS (
+    SELECT
+        ID_PRODUCTO,
+        PRECIO,
+        ROW_NUMBER() OVER (ORDER BY ID_PRODUCTO) AS RN
+    FROM CURSO_SQL.PUBLIC.PRODUCTOS
+), total_productos AS (
+    SELECT COUNT(*) AS TOTAL
+    FROM productos_ordenados
+), base AS (
+    SELECT
+        ROW_NUMBER() OVER (ORDER BY SEQ4()) AS ID_DETALLE
+    FROM TABLE(GENERATOR(ROWCOUNT => 3000))
+), detalle_base AS (
+    SELECT
+        b.ID_DETALLE,
+        CEIL(b.ID_DETALLE / 3.0) AS ID_PEDIDO,
+        MOD(b.ID_DETALLE - 1, 3) + 1 AS LINEA_DETALLE,
+        MOD(b.ID_DETALLE * 7, 5) + 1 AS CANTIDAD
+    FROM base b
+)
+SELECT
+    d.ID_DETALLE,
+    d.ID_PEDIDO,
+    p.ID_PRODUCTO,
+    d.CANTIDAD,
+    p.PRECIO AS PRECIO_UNITARIO,
+    CAST(d.CANTIDAD * p.PRECIO AS NUMBER(12,2)) AS SUBTOTAL
+FROM detalle_base d
+CROSS JOIN total_productos tp
+JOIN productos_ordenados p
+    ON p.RN = MOD(d.ID_PEDIDO + ((d.LINEA_DETALLE - 1) * 53) - 1, tp.TOTAL) + 1;
+
+-- ============================================================
+-- 5. Actualizar TOTAL_PEDIDO con la suma real del detalle
+-- ============================================================
+
+UPDATE CURSO_SQL.PUBLIC.PEDIDOS p
+SET TOTAL_PEDIDO = d.TOTAL_CALCULADO
+FROM (
+    SELECT
+        ID_PEDIDO,
+        CAST(SUM(SUBTOTAL) AS NUMBER(12,2)) AS TOTAL_CALCULADO
+    FROM CURSO_SQL.PUBLIC.DETALLE_PEDIDOS
+    GROUP BY ID_PEDIDO
+) d
+WHERE p.ID_PEDIDO = d.ID_PEDIDO;
+
+-- ============================================================
+-- 6. Validaciones generales de carga
+-- ============================================================
+
+SELECT 'CLIENTES' AS TABLA, COUNT(*) AS TOTAL_REGISTROS FROM CURSO_SQL.PUBLIC.CLIENTES
+UNION ALL
+SELECT 'PRODUCTOS' AS TABLA, COUNT(*) AS TOTAL_REGISTROS FROM CURSO_SQL.PUBLIC.PRODUCTOS
+UNION ALL
+SELECT 'PEDIDOS' AS TABLA, COUNT(*) AS TOTAL_REGISTROS FROM CURSO_SQL.PUBLIC.PEDIDOS
+UNION ALL
+SELECT 'DETALLE_PEDIDOS' AS TABLA, COUNT(*) AS TOTAL_REGISTROS FROM CURSO_SQL.PUBLIC.DETALLE_PEDIDOS;
+
+-- ============================================================
+-- 7. Validaciones de integridad referencial
+--    Resultado esperado: todos los conteos deben ser 0.
+-- ============================================================
+
+SELECT COUNT(*) AS pedidos_sin_cliente_valido
+FROM CURSO_SQL.PUBLIC.PEDIDOS p
+    LEFT JOIN CURSO_SQL.PUBLIC.CLIENTES c
+        ON p.ID_CLIENTE = c.ID_CLIENTE
+WHERE c.ID_CLIENTE IS NULL;
+
+SELECT COUNT(*) AS detalles_sin_pedido_valido
+FROM CURSO_SQL.PUBLIC.DETALLE_PEDIDOS dp
+    LEFT JOIN CURSO_SQL.PUBLIC.PEDIDOS p
+        ON dp.ID_PEDIDO = p.ID_PEDIDO
+WHERE p.ID_PEDIDO IS NULL;
+
+SELECT COUNT(*) AS detalles_sin_producto_valido
+FROM CURSO_SQL.PUBLIC.DETALLE_PEDIDOS dp
+    LEFT JOIN CURSO_SQL.PUBLIC.PRODUCTOS pr
+        ON dp.ID_PRODUCTO = pr.ID_PRODUCTO
+WHERE pr.ID_PRODUCTO IS NULL;
+
+-- ============================================================
+-- 8. Validaciones útiles para el Lab 08
+-- ============================================================
+
+-- Auditoría de NULL en PEDIDOS
+SELECT
+    COUNT(*) AS total_pedidos,
+    SUM(CASE WHEN ID_CLIENTE IS NULL THEN 1 ELSE 0 END) AS nulos_id_cliente,
+    SUM(CASE WHEN FECHA_PEDIDO IS NULL THEN 1 ELSE 0 END) AS nulos_fecha_pedido,
+    SUM(CASE WHEN TOTAL_PEDIDO IS NULL THEN 1 ELSE 0 END) AS nulos_total_pedido,
+    SUM(CASE WHEN ESTADO IS NULL THEN 1 ELSE 0 END) AS nulos_estado
+FROM CURSO_SQL.PUBLIC.PEDIDOS;
+
+-- Duplicados por línea de detalle
+-- Resultado esperado: 0 filas.
+SELECT
+    ID_PEDIDO,
+    ID_PRODUCTO,
+    COUNT(*) AS veces_repetido
+FROM CURSO_SQL.PUBLIC.DETALLE_PEDIDOS
+GROUP BY
+    ID_PEDIDO,
+    ID_PRODUCTO
+HAVING COUNT(*) > 1
+ORDER BY veces_repetido DESC
+LIMIT 20;
+
+-- Validación de totales: TOTAL_PEDIDO debe coincidir con la suma del detalle.
+-- Resultado esperado: 0 filas.
+SELECT
+    p.ID_PEDIDO,
+    p.TOTAL_PEDIDO,
+    d.TOTAL_DETALLE,
+    p.TOTAL_PEDIDO - d.TOTAL_DETALLE AS DIFERENCIA
+FROM CURSO_SQL.PUBLIC.PEDIDOS p
+JOIN (
+    SELECT
+        ID_PEDIDO,
+        CAST(SUM(SUBTOTAL) AS NUMBER(12,2)) AS TOTAL_DETALLE
+    FROM CURSO_SQL.PUBLIC.DETALLE_PEDIDOS
+    GROUP BY ID_PEDIDO
+) d
+    ON p.ID_PEDIDO = d.ID_PEDIDO
+WHERE p.TOTAL_PEDIDO <> d.TOTAL_DETALLE
+ORDER BY p.ID_PEDIDO;
+
+-- Muestra de datos para revisión visual.
+SELECT *
+FROM CURSO_SQL.PUBLIC.PEDIDOS
+ORDER BY ID_PEDIDO
+LIMIT 10;
+
+SELECT *
+FROM CURSO_SQL.PUBLIC.DETALLE_PEDIDOS
+ORDER BY ID_DETALLE
+LIMIT 10;
+```
+
+8. Ahora selecciona el script llamado **Setup_Lab01** borra el contenido del archivo.
+9. Copia y pega el siguiente contenido para actualizar la realción Ventas/Empleados
+10. Selecciona todo el contenido y ejecutalo.
+
+```sql
+-- ============================================================
+-- Script de inicialización del dataset CURSO_SQL
+-- Versión: 1.3
+-- Uso: Ejecutar una sola vez antes del Lab 01
+-- Ajuste: CLIENTES conserva NOMBRE y APELLIDO en columnas distintas
+-- Ajuste adicional: algunos EMAIL quedan NULL para prácticas de validación de datos
+-- ============================================================
+
+-- 1. Seleccionar warehouse de trabajo
+USE WAREHOUSE COMPUTE_WH;
+
+-- 2. Crear base de datos y schema del curso
+CREATE OR REPLACE DATABASE CURSO_SQL;
+USE DATABASE CURSO_SQL;
+CREATE SCHEMA IF NOT EXISTS PUBLIC;
+USE SCHEMA PUBLIC;
+
+-- 3. Recrear tablas para garantizar un estado limpio del laboratorio
+DROP TABLE IF EXISTS CURSO_SQL.PUBLIC.PRODUCTOS;
+DROP TABLE IF EXISTS CURSO_SQL.PUBLIC.CLIENTES;
+
+CREATE OR REPLACE TABLE CURSO_SQL.PUBLIC.PRODUCTOS (
+    ID_PRODUCTO      NUMBER(38,0) NOT NULL,
+    NOMBRE_PRODUCTO  VARCHAR(200),
+    CATEGORIA        VARCHAR(100),
+    PRECIO           NUMBER(10,2),
+    STOCK            NUMBER(38,0),
+    PROVEEDOR        VARCHAR(150),
+    FECHA_ALTA       DATE,
+    CONSTRAINT PK_PRODUCTOS PRIMARY KEY (ID_PRODUCTO)
+);
+
+CREATE OR REPLACE TABLE CURSO_SQL.PUBLIC.CLIENTES (
+    ID_CLIENTE       NUMBER(38,0) NOT NULL,
+    NOMBRE           VARCHAR(100),
+    APELLIDO         VARCHAR(100),
+    EMAIL            VARCHAR(200),
+    PAIS             VARCHAR(80),
+    CIUDAD           VARCHAR(100),
+    SEGMENTO         VARCHAR(50),
+    FECHA_REGISTRO   DATE,
+    TELEFONO         VARCHAR(30),
+    CONSTRAINT PK_CLIENTES PRIMARY KEY (ID_CLIENTE)
+);
+
+-- 4. Insertar 150 productos de ejemplo
+INSERT INTO CURSO_SQL.PUBLIC.PRODUCTOS (
+    ID_PRODUCTO,
+    NOMBRE_PRODUCTO,
+    CATEGORIA,
+    PRECIO,
+    STOCK,
+    PROVEEDOR,
+    FECHA_ALTA
+)
+WITH base AS (
+    SELECT SEQ4() + 1 AS ID_PRODUCTO
+    FROM TABLE(GENERATOR(ROWCOUNT => 150))
+), productos AS (
+    SELECT
+        ID_PRODUCTO,
+        CASE MOD(ID_PRODUCTO, 12)
+            WHEN 0 THEN 'Laptop Empresarial'
+            WHEN 1 THEN 'Monitor Profesional'
+            WHEN 2 THEN 'Teclado Mecánico'
+            WHEN 3 THEN 'Mouse Inalámbrico'
+            WHEN 4 THEN 'Silla Ergonómica'
+            WHEN 5 THEN 'Escritorio Ajustable'
+            WHEN 6 THEN 'Cuaderno Ejecutivo'
+            WHEN 7 THEN 'Impresora Láser'
+            WHEN 8 THEN 'Taladro Compacto'
+            WHEN 9 THEN 'Router WiFi'
+            WHEN 10 THEN 'Auriculares USB'
+            ELSE 'Cámara Web HD'
+        END AS TIPO_PRODUCTO,
+        CASE MOD(ID_PRODUCTO, 6)
+            WHEN 0 THEN 'Electrónica'
+            WHEN 1 THEN 'Mobiliario'
+            WHEN 2 THEN 'Papelería'
+            WHEN 3 THEN 'Herramientas'
+            WHEN 4 THEN 'Redes'
+            ELSE 'Accesorios'
+        END AS CATEGORIA,
+        CASE MOD(ID_PRODUCTO, 6)
+            WHEN 0 THEN 'TechSupply S.A.'
+            WHEN 1 THEN 'OfficeWorld'
+            WHEN 2 THEN 'Papelería Central'
+            WHEN 3 THEN 'ToolPro México'
+            WHEN 4 THEN 'NetworkPlus'
+            ELSE 'DigitalGear'
+        END AS PROVEEDOR
+    FROM base
+)
+SELECT
+    ID_PRODUCTO,
+    TIPO_PRODUCTO || ' ' || LPAD(ID_PRODUCTO, 3, '0') AS NOMBRE_PRODUCTO,
+    CATEGORIA,
+    CAST(ROUND(25 + MOD(ID_PRODUCTO * 37, 5000) / 10, 2) AS NUMBER(10,2)) AS PRECIO,
+    MOD(ID_PRODUCTO * 17, 250) + 5 AS STOCK,
+    PROVEEDOR,
+    DATEADD(DAY, -MOD(ID_PRODUCTO * 9, 730), CURRENT_DATE()) AS FECHA_ALTA
+FROM productos;
+
+-- 5. Insertar 300 clientes de ejemplo
+INSERT INTO CURSO_SQL.PUBLIC.CLIENTES (
+    ID_CLIENTE,
+    NOMBRE,
+    APELLIDO,
+    EMAIL,
+    PAIS,
+    CIUDAD,
+    SEGMENTO,
+    FECHA_REGISTRO,
+    TELEFONO
+)
+WITH base AS (
+    SELECT SEQ4() + 1 AS ID_CLIENTE
+    FROM TABLE(GENERATOR(ROWCOUNT => 300))
+), clientes AS (
+    SELECT
+        ID_CLIENTE,
+        CASE MOD(ID_CLIENTE, 12)
+            WHEN 0 THEN 'Ana'
+            WHEN 1 THEN 'Carlos'
+            WHEN 2 THEN 'Lucía'
+            WHEN 3 THEN 'Jorge'
+            WHEN 4 THEN 'María'
+            WHEN 5 THEN 'Andrés'
+            WHEN 6 THEN 'Sofía'
+            WHEN 7 THEN 'Daniel'
+            WHEN 8 THEN 'Valeria'
+            WHEN 9 THEN 'Miguel'
+            WHEN 10 THEN 'Camila'
+            ELSE 'Ricardo'
+        END AS NOMBRE_BASE,
+        CASE MOD(ID_CLIENTE, 12)
+            WHEN 0 THEN 'Martínez'
+            WHEN 1 THEN 'Gómez'
+            WHEN 2 THEN 'Fernández'
+            WHEN 3 THEN 'Ramírez'
+            WHEN 4 THEN 'Torres'
+            WHEN 5 THEN 'López'
+            WHEN 6 THEN 'Castillo'
+            WHEN 7 THEN 'Hernández'
+            WHEN 8 THEN 'Morales'
+            WHEN 9 THEN 'Sánchez'
+            WHEN 10 THEN 'Vargas'
+            ELSE 'Flores'
+        END AS APELLIDO_BASE,
+        CASE MOD(ID_CLIENTE, 8)
+            WHEN 0 THEN 'México'
+            WHEN 1 THEN 'Colombia'
+            WHEN 2 THEN 'Argentina'
+            WHEN 3 THEN 'España'
+            WHEN 4 THEN 'Chile'
+            WHEN 5 THEN 'Perú'
+            WHEN 6 THEN 'Ecuador'
+            ELSE 'Uruguay'
+        END AS PAIS,
+        CASE MOD(ID_CLIENTE, 8)
+            WHEN 0 THEN 'Ciudad de México'
+            WHEN 1 THEN 'Bogotá'
+            WHEN 2 THEN 'Buenos Aires'
+            WHEN 3 THEN 'Madrid'
+            WHEN 4 THEN 'Santiago'
+            WHEN 5 THEN 'Lima'
+            WHEN 6 THEN 'Quito'
+            ELSE 'Montevideo'
+        END AS CIUDAD,
+        CASE MOD(ID_CLIENTE, 4)
+            WHEN 0 THEN 'Corporativo'
+            WHEN 1 THEN 'Retail'
+            WHEN 2 THEN 'Gobierno'
+            ELSE 'PyME'
+        END AS SEGMENTO
+    FROM base
+)
+SELECT
+    ID_CLIENTE,
+    NOMBRE_BASE AS NOMBRE,
+    APELLIDO_BASE || ' ' || LPAD(ID_CLIENTE, 3, '0') AS APELLIDO,
+    CASE
+        WHEN MOD(ID_CLIENTE, 13) = 0 THEN NULL
+        ELSE
+            LOWER(
+                TRANSLATE(NOMBRE_BASE, 'ÁÉÍÓÚáéíóúÑñ', 'AEIOUaeiouNn')
+            )
+            || '.' ||
+            LOWER(
+                TRANSLATE(APELLIDO_BASE, 'ÁÉÍÓÚáéíóúÑñ', 'AEIOUaeiouNn')
+            )
+            || LPAD(ID_CLIENTE, 3, '0') ||
+            CASE MOD(ID_CLIENTE, 5)
+                WHEN 0 THEN '@gmail.com'
+                WHEN 1 THEN '@outlook.com'
+                WHEN 2 THEN '@empresa.com'
+                WHEN 3 THEN '@example.com'
+                ELSE '@correo.com'
+            END
+    END AS EMAIL,
+    PAIS,
+    CIUDAD,
+    SEGMENTO,
+    DATEADD(DAY, -MOD(ID_CLIENTE * 5, 1095), CURRENT_DATE()) AS FECHA_REGISTRO,
+    CASE
+        WHEN MOD(ID_CLIENTE, 7) = 0 THEN NULL
+        ELSE '+52' || LPAD(MOD(ID_CLIENTE * 31, 9000000000) + 1000000000, 10, '0')
+    END AS TELEFONO
+FROM clientes;
+
+-- 6. Validar que el dataset quedó creado correctamente
+SELECT 'PRODUCTOS' AS TABLA, COUNT(*) AS TOTAL_REGISTROS FROM CURSO_SQL.PUBLIC.PRODUCTOS
+UNION ALL
+SELECT 'CLIENTES' AS TABLA, COUNT(*) AS TOTAL_REGISTROS FROM CURSO_SQL.PUBLIC.CLIENTES;
+
+-- 7. Validar estructura y muestra de CLIENTES
+DESCRIBE TABLE CURSO_SQL.PUBLIC.CLIENTES;
+
+SELECT
+    ID_CLIENTE,
+    NOMBRE,
+    APELLIDO,
+    EMAIL,
+    PAIS,
+    CIUDAD,
+    SEGMENTO,
+    FECHA_REGISTRO,
+    TELEFONO
+FROM CURSO_SQL.PUBLIC.CLIENTES
+ORDER BY ID_CLIENTE
+LIMIT 10;
+
+-- 8. Validaciones útiles para laboratorios de filtrado
+SELECT SEGMENTO, COUNT(*) AS TOTAL_CLIENTES
+FROM CURSO_SQL.PUBLIC.CLIENTES
+GROUP BY SEGMENTO
+ORDER BY SEGMENTO;
+
+SELECT PAIS, COUNT(*) AS TOTAL_CLIENTES
+FROM CURSO_SQL.PUBLIC.CLIENTES
+GROUP BY PAIS
+ORDER BY PAIS;
+
+SELECT
+    COUNT(*) AS TOTAL_CLIENTES,
+    COUNT(CASE WHEN EMAIL IS NULL THEN 1 END) AS CLIENTES_SIN_EMAIL,
+    COUNT(CASE WHEN EMAIL IS NOT NULL THEN 1 END) AS CLIENTES_CON_EMAIL,
+    COUNT(CASE WHEN TELEFONO IS NULL THEN 1 END) AS CLIENTES_SIN_TELEFONO,
+    COUNT(CASE WHEN TELEFONO IS NOT NULL THEN 1 END) AS CLIENTES_CON_TELEFONO
+FROM CURSO_SQL.PUBLIC.CLIENTES;
+```
+
+#### Resultado Esperado
+
+Al finalizar la ejecución del script, la tabla **`PEDIDOS`** queda disponible con datos suficientes para completar todos los pasos de la práctica y las tablas **CLIENTES/PRODUCTOS** quedaron ajustadas para las consultas.
+
+---
+
 ### Configuración Inicial del Entorno
 
-Antes de comenzar los ejercicios, ejecuta los siguientes comandos en un **nuevo Worksheet** de Snowsight para establecer el contexto de trabajo correcto:
+Antes de comenzar los ejercicios, debes verificar que tu entorno Snowflake está correctamente configurado. Sigue estos pasos de setup una sola vez al inicio de la sesión.
+
+**Paso de configuración — Abrir un Worksheet y seleccionar el contexto correcto:**
+
+1. Selecciona tu **Workspace** llamado **`SnowEssLabs`**
+2. Agrega un nuevo archivo tipo **SQL** y escribe el siguiente nombre: **`Lab08_Validacion_Datos`**
+3. En la barra superior derecha del workspace, selecciona el contexto de ejecución:
+   - **Warehouse:** `COMPUTE_WH` (tamaño X-Small)
+   - **Database:** `CURSO_SQL`
+   - **Schema:** `PUBLIC`
+
+4. Ejecuta el siguiente bloque de configuración para confirmar que el contexto está activo:
 
 ```sql
 -- Configuración del contexto de trabajo
 -- Ajusta los nombres según tu entorno específico
 
+USE WAREHOUSE COMPUTE_WH;     -- Warehouse X-Small recomendado ajustalo si tu nombre es diferente.
 USE DATABASE CURSO_SQL;
-USE SCHEMA PUBLIC;          -- O el schema asignado: ESTUDIANTE_01, ESTUDIANTE_02, etc.
-USE WAREHOUSE CURSO_WH;     -- Warehouse X-Small recomendado
+USE SCHEMA PUBLIC;
 ```
 
 **Verificación del contexto:** Confirma que en la barra superior de Snowsight aparezcan correctamente la base de datos `CURSO_SQL`, el schema y el warehouse seleccionados antes de continuar.
-
-> **Nota para entornos compartidos:** Si trabajas en un entorno corporativo compartido, usa el schema asignado por tu instructor (ej. `ESTUDIANTE_01`). En cuentas trial individuales, el schema `PUBLIC` es suficiente.
 
 ---
 
@@ -98,9 +645,7 @@ USE WAREHOUSE CURSO_WH;     -- Warehouse X-Small recomendado
 
 #### Instrucciones
 
-1. Abre Snowsight y navega a **Worksheets**. Crea un nuevo worksheet llamado `Lab08_Validacion_Datos`.
-
-2. Ejecuta la siguiente consulta para listar las tablas disponibles en el schema:
+1. Ejecuta la siguiente consulta para listar las tablas disponibles en el schema:
 
 ```sql
 -- ============================================================
@@ -111,7 +656,7 @@ USE WAREHOUSE CURSO_WH;     -- Warehouse X-Small recomendado
 SHOW TABLES IN SCHEMA CURSO_SQL.PUBLIC;
 ```
 
-3. A continuación, verifica el número de filas en cada tabla principal ejecutando las siguientes consultas una por una:
+2. A continuación, verifica el número de filas en cada tabla principal ejecutando las siguientes consultas una por una:
 
 ```sql
 -- Conteo de registros por tabla principal
@@ -124,14 +669,14 @@ UNION ALL
 SELECT 'DETALLE_PEDIDOS' AS tabla, COUNT(*) AS total_registros FROM DETALLE_PEDIDOS;
 ```
 
-4. Revisa la estructura de la tabla `CLIENTES` para identificar sus columnas:
+3. Revisa la estructura de la tabla `CLIENTES` para identificar sus columnas:
 
 ```sql
 -- Revisión de estructura de la tabla CLIENTES
 DESCRIBE TABLE CLIENTES;
 ```
 
-5. Repite el paso anterior para `PEDIDOS`:
+4. Repite el paso anterior para `PEDIDOS`:
 
 ```sql
 -- Revisión de estructura de la tabla PEDIDOS
