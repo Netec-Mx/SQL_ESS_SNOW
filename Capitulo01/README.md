@@ -88,20 +88,20 @@ Antes de iniciar los pasos del laboratorio, debes ejecutar el siguiente script. 
 
 ---
 
-## Paso 0 — Crear y poblar el dataset `CURSO_SQL`
+## Paso 0 — Crear y poblar el dataset **CLIENTES y PRODUCTOS** en `CURSO_SQL`
 
 **Objetivo:** Preparar el entorno de trabajo creando las tablas requeridas para el laboratorio.
 
 ### Instrucciones
 
-1. Inicia sesión en Snowflake Snowsight.
-2. En el menú lateral izquierdo, entra a **Projects → Workspaces**.
+1. Inicia sesión en tu cuenta Snowflake en [app.snowflake.com](https://app.snowflake.com).
+2. En el menú lateral izquierdo, haz clic en **Projects → Workspaces**.
 3. Crea un nuevo private workspace.
-4. Renómbralo como `Setup_CURSO_SQLSNOW`.
+4. Nombralo como **`Setup_CURSO_SQLSNOW`**.
 5. Da clic en **Add new** y crea un nuevo archivo tipo **SQL**
-6. Escribe el siguiente nombre del archivo: **`setup_script_lab1.sql`**
-7. A la derecha selecciona el warehouse **`COMPUTE_WH`** o el warehouse asignado/creado al inicio de la creación de la cuenta.
-8. Copia/Pega y ejecuta el siguiente script completo.
+6. Escribe el siguiente nombre del archivo: **`Setup_Lab01.sql`**
+8. A la derecha selecciona el warehouse **`COMPUTE_WH`** o el warehouse asignado/creado al inicio de la creación de la cuenta.
+9. Copia/Pega y ejecuta el siguiente script completo.
 
 > **Nota:** En Snowsight puedes ejecutar todo el bloque completo. Si tu cuenta no permite crear bases de datos, ejecuta el script hasta donde tus permisos lo permitan o solicita apoyo del instructor.
 
@@ -390,17 +390,15 @@ Antes de comenzar los ejercicios, debes verificar que tu entorno Snowflake está
 
 **Paso de configuración — Abrir un Worksheet y seleccionar el contexto correcto:**
 
-1. Inicia sesión en tu cuenta Snowflake en [app.snowflake.com](https://app.snowflake.com).
-2. En el menú lateral izquierdo, haz clic en **Projects → Workspaces**.
-3. Haz clic en el botón **＋** (esquina superior derecha) para crear un nuevo Private Workspace.
-4. Escribe el siguiente nombre: **`SnowEssLabs`**
-5. Agrega un nuevo archivo tipo **SQL** y escribe el siguiente nombre: **`Lab_01_Exploracion_Inicial`**
-6. En la barra superior derecha del workspace, selecciona el contexto de ejecución:
+1. Haz clic en el botón **＋** (esquina superior derecha) para crear un nuevo Private Workspace.
+2. Escribe el siguiente nombre: **`SnowEssLabs`**
+3. Agrega un nuevo archivo tipo **SQL** y escribe el siguiente nombre: **`Lab_01_Exploracion_Inicial`**
+4. En la barra superior derecha del workspace, selecciona el contexto de ejecución:
    - **Warehouse:** `COMPUTE_WH` (tamaño X-Small)
    - **Database:** `CURSO_SQL`
    - **Schema:** `PUBLIC`
 
-7. Ejecuta el siguiente bloque de configuración para confirmar que el contexto está activo:
+5. Ejecuta el siguiente bloque de configuración para confirmar que el contexto está activo:
 
 ```sql
 -- Configuración del contexto de trabajo
