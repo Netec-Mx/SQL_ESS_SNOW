@@ -84,7 +84,7 @@ Al finalizar este laboratorio, serás capaz de:
 2. En el menú lateral izquierdo, haz clic en **Projects → Workspaces**.
 3. Selecciona el Workspace llamado **`Setup_CURSO_SQLSNOW`**.
 4.  Da clic en **Add new** y crea un nuevo archivo tipo **SQL**
-5. Escribe el siguiente nombre del archivo: **`Setup_Lab03_Empleados.sql`**
+5. Escribe el siguiente nombre del archivo: **`Setup_Lab03_Empleados`**
 6. A la derecha selecciona el warehouse **`COMPUTE_WH`** o el warehouse asignado/creado al inicio de la creación de la cuenta.
 7. Copia/Pega y ejecuta el siguiente script completo.
 
