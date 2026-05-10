@@ -344,7 +344,7 @@ ORDER BY ID_DETALLE
 LIMIT 10;
 ```
 
-8. Ahora selecciona el script llamado **Setup_Lab01** borra el contenido del archivo.
+8. Ahora selecciona el script llamado **Setup_Lab01_CLI-PROD** borra el contenido del archivo.
 9. Copia y pega el siguiente contenido para actualizar la realción Ventas/Empleados
 10. Selecciona todo el contenido y ejecutalo.
 
@@ -600,6 +600,10 @@ SELECT
     COUNT(CASE WHEN TELEFONO IS NOT NULL THEN 1 END) AS CLIENTES_CON_TELEFONO
 FROM CURSO_SQL.PUBLIC.CLIENTES;
 ```
+
+11. Abre el archivo **Setup_Lab08_Pedidos** selecciona el contenido y ejecutalo.
+12. Abre el archivo **Setup_Lab03_Empleados** selecciona el contenido y ejecutalo.
+13. Abre el archivo **Setup_Lab02_Ventas** selecciona el contenido y ejecutalo.
 
 #### Resultado Esperado
 
