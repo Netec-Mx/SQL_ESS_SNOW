@@ -702,7 +702,7 @@ SELECT
     ROUND(AVG(TOTAL_VENTA), 2)      AS ticket_promedio,
     ROUND(MAX(TOTAL_VENTA), 2)      AS venta_maxima
 FROM VENTAS
-WHERE FECHA_VENTA >= DATEADD('year', -2, CURRENT_DATE())
+WHERE FECHA_VENTA >= DATEADD('year', -3, CURRENT_DATE())
 GROUP BY REGION
 HAVING COUNT(*) > 50
 ORDER BY ticket_promedio DESC;
@@ -859,7 +859,7 @@ SELECT
     COUNT(*)            AS total_ventas,
     SUM(TOTAL_VENTA)    AS ingreso_total
 FROM VENTAS
-WHERE FECHA_VENTA >= DATEADD('year', -1, CURRENT_DATE())
+WHERE FECHA_VENTA >= DATEADD('year', -2, CURRENT_DATE())
 GROUP BY CATEGORIA
 -- Coloca aquí el HAVING
 ORDER BY total_ventas DESC;
