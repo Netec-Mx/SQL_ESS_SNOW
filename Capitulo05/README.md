@@ -113,15 +113,15 @@ SELECT * FROM PRODUCTOS LIMIT 5;
 Tómate un momento para observar las columnas disponibles. Las columnas clave que utilizarás en este laboratorio son:
 
 **Tabla VENTAS:**
-- `VENTA_ID` — Identificador único de cada venta
+- `ID_VENTA` — Identificador único de cada venta
 - `ID_CLIENTE` — Identificador del cliente (puede contener NULLs)
-- `PRODUCTO_ID` — Identificador del producto vendido
+- `ID_PRODUCTO` — Identificador único del producto
 - `CANTIDAD` — Valor monetario de la venta
 - `FECHA_VENTA` — Fecha en que se realizó la venta
 - `ESTADO_ENVIO` — Estado de la venta (`completada`, `pendiente`, `cancelada`)
 
 **Tabla PRODUCTOS:**
-- `PRODUCTO_ID` — Identificador único del producto
+- `ID_PRODUCTO` — Identificador único del producto
 - `NOMBRE_PRODUCTO` — Nombre del producto
 - `CATEGORIA` — Categoría del producto
 - `PRECIO` — Precio unitario del producto
@@ -688,7 +688,7 @@ SELECT
     SUM(v.CANTIDAD)            AS ingreso_total,
     AVG(p.PRECIO)           AS precio_promedio_catalogo
 FROM VENTAS v
-JOIN PRODUCTOS p ON v.PRODUCTO_ID = p.PRODUCTO_ID;
+JOIN PRODUCTOS p ON v.ID_PRODUCTO = p.ID_PRODUCTO;
 
 -- MÁS SIMPLE: Si solo necesitas métricas de una tabla, no hagas JOIN
 -- Dashboard de VENTAS:
